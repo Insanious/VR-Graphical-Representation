@@ -9,7 +9,7 @@ public class DataPlotter : MonoBehaviour
 	enum RenderType { PLANAR, CONE };
 
 	// Initialize variables
-	public GameObject PointPrefab;
+	public GameObject pointPrefab;
 	public List<Container> nodes;
 	public string file;
 	public int maxDepth = 0;
@@ -49,7 +49,6 @@ public class DataPlotter : MonoBehaviour
 			return;
 		}
 
-		Container parent = null;
 		List<List<Container>> siblings;
 		siblings = getSiblings(nodes);
 		int nrOfLevels = siblings.Count;
@@ -62,7 +61,7 @@ public class DataPlotter : MonoBehaviour
 			gridSize = (int)Math.Ceiling(Math.Sqrt(nrOfSiblings)); // Nearest perfect square is the side for the grid and is calculated as the ceiling of sqrt(nrOfSiblings)
 
 			for (int j = 0; j < nrOfSiblings; j++)
-				createPrefab(siblings[i][j], new Vector3(j / gridSize, i, j % gridSize), Color.black);
+				createPrefab(siblings[i][j], new Vector3((j / gridSize) - ((float)gridSize / 2), i + 1, (j % gridSize) - ((float)gridSize / 2)), Color.black);
 		}
 	}
 
@@ -126,7 +125,7 @@ public class DataPlotter : MonoBehaviour
 
 	private void createPrefab(Container node, Vector3 position, Color color)
 	{
-		var obj = Instantiate(PointPrefab, new Vector3(position.x, position.y, position.z), Quaternion.identity);
+		var obj = Instantiate(pointPrefab, new Vector3(position.x, position.y, position.z), Quaternion.identity);
 		obj.GetComponent<Renderer>().material.color = color;
 	}
 }

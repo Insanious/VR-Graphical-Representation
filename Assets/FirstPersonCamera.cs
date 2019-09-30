@@ -10,20 +10,25 @@ public class FirstPersonCamera : MonoBehaviour
 	private float yaw = 0.0f;
 	private float pitch = 0.0f;
 
-	//public bool cursorLock = false;
-	//Screen.lockCursor = true;
+
+	void Start()
+	{
+		Cursor.visible = true;
+	}
 
 	void Update () {
 		yaw += speedH * Input.GetAxis("Mouse X");
 		pitch -= speedV * Input.GetAxis("Mouse Y");
 
 
+
 		if (Input.GetKey(KeyCode.Escape))
-			Screen.lockCursor = false;
+			Cursor.lockState = CursorLockMode.None;
 		else
 		{
-			Screen.lockCursor = true;
+			Cursor.lockState = CursorLockMode.Locked;
 			transform.eulerAngles = new Vector3(pitch, yaw, 0.0f);
 		}
+		Cursor.visible = true;
 	}
 }
