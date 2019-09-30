@@ -4,19 +4,22 @@ using UnityEngine;
 
 public class Container
 {
-	public List<Container> children;
-	public Container parent;
+	public List<Container> children { get; set; }
+	public Container parent { get; set; }
 
-	public string name;
-	public float size;
-	public float weight;
+	public string name { get; set; }
+	public float size { get; set; }
+	public float weight { get; set; }
 
-	public void connectParent()
+	public int depth { get; set; }
+
+	public void setDepth(Container node)
 	{
-		foreach (Container child in children)
-		{
-			child.parent = this;
-			child.connectParent();
-		}
+		this.depth++;
+
+		if (node.parent == null)
+			return;
+
+		setDepth(node.parent);
 	}
 }
