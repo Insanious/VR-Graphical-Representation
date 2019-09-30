@@ -13,6 +13,15 @@ public class Container
 
 	public int depth { get; set; }
 
+	public Container() {}
+
+	public Container(Container other)
+	{
+		this.name = other.name;
+		this.size = other.size;
+		this.weight = other.weight;
+	}
+
 	public void setDepth(Container node)
 	{
 		this.depth++;

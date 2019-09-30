@@ -6,52 +6,76 @@ using System;
 
 public class DataPlotter : MonoBehaviour
 {
+	enum RenderType { PLANAR, CONE };
 
 	// Initialize variables
 	public GameObject PointPrefab;
-	public string file;
 	public List<Container> nodes;
-	public List<Container> siblings = new List<Container>();
-
-	public int nrOfChildren = 0;
-	public int nrOfSiblings = 0;
-	public float level = 0;
-	public int gridSize = 0;
+	public string file;
 	public int maxDepth = 0;
 
-	public Container parent;
-
-	void Start()
+	private void Start()
 	{
 		nodes = populateTree(JSONParser.Read(file));
-		renderNodes(nodes);
+		maxDepth = nodes[nodes.Count - 1].depth;
+		renderNodes(nodes, RenderType.PLANAR);
 	}
 
-	private void renderNodes(List<Container> nodes)
+	private List<List<Container>> getSiblings(List<Container> nodes)
 	{
 		Container parent = null;
-		List<Container> siblings = new List<Container>();
-		int gridSize = 0;
-		int nrOfSiblings = 0;
-		int counter = 0;
+		List<List<Container>> siblings = new List<List<Container>>();
 		int level = 0;
 
+		siblings.Add(new List<Container>());
 		foreach (Container node in nodes)
 		{
-			if (node.parent != parent || node == nodes[nodes.Count - 1])
+			if (node.parent != parent)
 			{
 				parent = node.parent;
 				level++;
-
-				nrOfSiblings = siblings.Count;
-				gridSize = (int)Math.Ceiling(Math.Sqrt(nrOfSiblings)); // Nearest perfect square is the ceiling of the square root
-
-				for (int i = 0; i < nrOfSiblings; i++)
-					createPrefab(siblings[i], new Vector3(i / gridSize, level, i % gridSize), Color.black);
-
-				siblings.Clear(); // Empty the list
+				siblings.Add(new List<Container>());
 			}
-			siblings.Add(node);
+			siblings[level].Add(node);
+		}
+		return siblings;
+	}
+
+	private void planarRendering(List<Container> nodes)
+	{
+		if (nodes.Count == 0)
+		{
+			Debug.Log("No nodes in tree");
+			return;
+		}
+
+		Container parent = null;
+		List<List<Container>> siblings;
+		siblings = getSiblings(nodes);
+		int nrOfLevels = siblings.Count;
+		int gridSize = 0;
+		int nrOfSiblings = 0;
+
+		for (int i = 0; i < nrOfLevels; i++) // Create all prefabs from the 2d list of siblings
+		{
+			nrOfSiblings = siblings[i].Count;
+			gridSize = (int)Math.Ceiling(Math.Sqrt(nrOfSiblings)); // Nearest perfect square is the side for the grid and is calculated as the ceiling of sqrt(nrOfSiblings)
+
+			for (int j = 0; j < nrOfSiblings; j++)
+				createPrefab(siblings[i][j], new Vector3(j / gridSize, i, j % gridSize), Color.black);
+		}
+	}
+
+	private void renderNodes(List<Container> nodes, RenderType type)
+	{
+		switch (type)
+		{
+			case RenderType.PLANAR:
+				planarRendering(nodes);
+				break;
+
+			case RenderType.CONE:
+				break;
 		}
 	}
 
@@ -85,11 +109,8 @@ public class DataPlotter : MonoBehaviour
 
 			foreach(Container child in tempQueue) //Create new children from reference
 			{
-				Container newChild = new Container();
+				Container newChild = new Container(child);
 				newChild.parent = parent;
-				newChild.name = child.name;
-				newChild.size = child.size;
-				newChild.weight = child.weight;
 				newChild.setDepth(newChild);
 
 				parent.children.Add(newChild); // Add the new child to the list
