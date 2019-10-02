@@ -2,9 +2,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Container
+public class Container : MonoBehaviour
 {
+	public int id { get; set; }
+	public GameObject self;
+
 	public List<Container> children { get; set; }
+	public List<Container> siblings { get; set; }
 	public Container parent { get; set; }
 
 	public string name { get; set; }
@@ -22,13 +26,15 @@ public class Container
 		this.weight = other.weight;
 	}
 
-	public void setDepth(Container node)
+	public static int GetDepth(Container node)
 	{
-		this.depth++;
-
-		if (node.parent == null)
-			return;
-
-		setDepth(node.parent);
+		return RecursiveDepth(node, 0);
+	}
+	public static int RecursiveDepth(Container node, int depth)
+	{
+		depth++;
+		if (node.parent.name == "root")
+			return depth;
+		return RecursiveDepth(node.parent, depth);
 	}
 }

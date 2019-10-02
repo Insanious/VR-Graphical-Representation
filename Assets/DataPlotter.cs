@@ -16,41 +16,76 @@ public class DataPlotter : MonoBehaviour
 
 	private void Start()
 	{
-		nodes = populateTree(JSONParser.Read(file));
-		maxDepth = nodes[nodes.Count - 1].depth;
-		renderNodes(nodes, RenderType.PLANAR);
+		//nodes = populateTree(JSONParser.Read(file));
+		Container root = JSONParser.Read(file);
+		InitializeNodes(root);
+		renderNodes(root, RenderType.PLANAR);
 	}
 
-	private List<List<Container>> getSiblings(List<Container> nodes)
+	public void InitializeNodes(Container root)
 	{
+		Queue<Container> childrenQueue = new Queue<Container>();
 		Container parent = null;
+		Container grandParent = null;
+		int id = 0;
+
+		root.parent = parent;
+		root.depth = 0;
+		root.id = id++;
+
+		childrenQueue.Enqueue(root);
+		while (childrenQueue.Count != 0)
+		{
+			parent = childrenQueue.Dequeue();
+			foreach (Container child in parent.children)
+			{
+				List<Container> siblings = new List<Container>();
+				foreach (var sibling in parent.children)
+					if (child != sibling)
+						siblings.Add(sibling);
+
+				child.siblings = siblings;
+				child.parent = parent;
+				child.depth = Container.GetDepth(child);
+				child.id = id++;
+
+				childrenQueue.Enqueue(child);
+			}
+		}
+	}
+
+	private List<List<Container>> getSiblings(Container root)
+	{
+		Container parent = root;
+		Container grandParent = root;
+		Queue<Container> childrenQueue = new Queue<Container>();
 		List<List<Container>> siblings = new List<List<Container>>();
 		int level = 0;
 
 		siblings.Add(new List<Container>());
-		foreach (Container node in nodes)
+		childrenQueue.Enqueue(root);
+		while (childrenQueue.Count != 0)
 		{
-			if (node.parent != parent)
+
+			parent = childrenQueue.Dequeue();
+			foreach (Container child in parent.children)
+				childrenQueue.Enqueue(child);
+
+			if (parent.id != root.id && grandParent.id != parent.parent.id)
 			{
-				parent = node.parent;
+				grandParent = parent.parent;
 				level++;
 				siblings.Add(new List<Container>());
 			}
-			siblings[level].Add(node);
+			siblings[level].Add(parent);
 		}
 		return siblings;
 	}
 
-	private void planarRendering(List<Container> nodes)
+	private void planarRendering(Container root)
 	{
-		if (nodes.Count == 0)
-		{
-			Debug.Log("No nodes in tree");
-			return;
-		}
-
 		List<List<Container>> siblings;
-		siblings = getSiblings(nodes);
+		siblings = getSiblings(root);
 		int nrOfLevels = siblings.Count;
 		int gridSize = 0;
 		int nrOfSiblings = 0;
@@ -59,73 +94,30 @@ public class DataPlotter : MonoBehaviour
 		{
 			nrOfSiblings = siblings[i].Count;
 			gridSize = (int)Math.Ceiling(Math.Sqrt(nrOfSiblings)); // Nearest perfect square is the side for the grid and is calculated as the ceiling of sqrt(nrOfSiblings)
-
 			for (int j = 0; j < nrOfSiblings; j++)
 				createPrefab(siblings[i][j], new Vector3((j / gridSize) - ((float)gridSize / 2), i + 1, (j % gridSize) - ((float)gridSize / 2)), Color.black);
 		}
 	}
 
-	private void renderNodes(List<Container> nodes, RenderType type)
+	private void renderNodes(Container root, RenderType type)
 	{
 		switch (type)
 		{
 			case RenderType.PLANAR:
-				planarRendering(nodes);
+				planarRendering(root);
 				break;
 
 			case RenderType.CONE:
+			Debug.Log("not implemented yet bruh");
 				break;
 		}
 	}
 
-	private List<Container> populateTree(Container rootReference)
-	{
-		List<Container> nodes = new List<Container>();
-		Queue referenceQueue = new Queue();
-		Queue childrenQueue = new Queue();
-		Queue tempQueue = new Queue();
-		Container root = new Container();
-		Container parent;
-
-		root.parent = null;
-		root.name = rootReference.name;
-		root.setDepth(root);
-
-		childrenQueue.Enqueue(root);
-		referenceQueue.Enqueue(rootReference);
-
-		while (referenceQueue.Count != 0)
-		{
-			Container node = (Container)referenceQueue.Dequeue();
-			foreach(Container child in node.children) // Populate the reference queue
-			{
-				tempQueue.Enqueue(child);
-				referenceQueue.Enqueue(child);
-			}
-
-			parent = (Container)childrenQueue.Dequeue(); // Pop the parent and then populate its' children list with children
-			parent.children = new List<Container>();
-
-			foreach(Container child in tempQueue) //Create new children from reference
-			{
-				Container newChild = new Container(child);
-				newChild.parent = parent;
-				newChild.setDepth(newChild);
-
-				parent.children.Add(newChild); // Add the new child to the list
-				childrenQueue.Enqueue(newChild); // Enqueue the new child top be able to assign it to parent later on
-			}
-			tempQueue.Clear();
-
-			nodes.Add(parent); // Add parent to nodes now that its' children are stored in queue
-		}
-
-		return nodes;
-	}
 
 	private void createPrefab(Container node, Vector3 position, Color color)
 	{
 		var obj = Instantiate(pointPrefab, new Vector3(position.x, position.y, position.z), Quaternion.identity);
 		obj.GetComponent<Renderer>().material.color = color;
+		//Container container = obj.AddComponent<Container>() as Container;
 	}
 }

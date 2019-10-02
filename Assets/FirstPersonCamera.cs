@@ -20,8 +20,6 @@ public class FirstPersonCamera : MonoBehaviour
 		yaw += speedH * Input.GetAxis("Mouse X");
 		pitch -= speedV * Input.GetAxis("Mouse Y");
 
-
-
 		if (Input.GetKey(KeyCode.Escape))
 			Cursor.lockState = CursorLockMode.None;
 		else
