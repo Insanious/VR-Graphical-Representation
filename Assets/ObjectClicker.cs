@@ -19,8 +19,22 @@ public class ObjectClicker : MonoBehaviour
 			Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
 			if (Physics.Raycast(ray, out hit, 100.0f))
-				if (hit.transform.name == "DataBall(Clone)")
-					Debug.Log("ball boi");
+			{
+				GameObject obj = hit.transform.gameObject;
+				//Debug.Log(obj.name);
+				if (obj.name == "DataBall(Clone)")
+				{
+					obj.GetComponent<Container>().print();
+					/*
+					Debug.Log(obj.GetComponent<Container>().siblings.Count);
+
+					Debug.Log("nr of siblings = " + obj.GetComponent<Container>().siblings.Count);
+					foreach (Container child in obj.GetComponent<Container>().parent.self.GetComponent<Container>().children)
+						child.self.GetComponent<Renderer>().material.color = Color.blue;
+					obj.GetComponent<Container>().parent.self.GetComponent<Renderer>().material.color = Color.black;
+					*/
+				}
+			}
 		}
     }
 }

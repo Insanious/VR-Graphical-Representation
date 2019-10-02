@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 3171053995787945692}
   - component: {fileID: 3171053995787945693}
   - component: {fileID: -5347793143039106565}
+  - component: {fileID: -3638870645046293552}
   m_Layer: 0
   m_Name: DataBall
   m_TagString: Untagged
@@ -108,3 +109,24 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &-3638870645046293552
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5656617883665912655}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 355d9deb755297794bfdbef130ec1942, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  self: {fileID: 5656617883665912655}
+  children: []
+  siblings: []
+  parent: {fileID: -3638870645046293552}
+  id: 0
+  depth: 0
+  name: 
+  size: 0
+  weight: 0
