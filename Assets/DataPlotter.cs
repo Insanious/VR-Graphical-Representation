@@ -17,7 +17,8 @@ public class DataPlotter : MonoBehaviour
 	{
 		Container root = JSONParser.Read(file);
 		InitializeNodes(root);
-		RenderNodes(root, RenderType.PLANAR);
+		Debug.Log("total size of architecture = " + Container.GetSize(root));
+		RenderNodes(root, RenderType.CONE);
 	}
 
 	public void InitializeNodes(Container root)
@@ -107,6 +108,37 @@ public class DataPlotter : MonoBehaviour
 		return siblings;
 	}
 
+	private void ConeRendering(Container root)
+	{
+		List<List<Container>> siblings;
+		Vector3 position;
+		int nrOfLevels = 0;
+		int nrOfSiblings = 0;
+		float radius = 1;
+		float deltaTheta = 0f;
+		float theta = 0f;
+
+		siblings = GetSiblings(root);
+		nrOfLevels = siblings.Count;
+
+		for (int i = 0; i < nrOfLevels; i++) // Create all prefabs from the 2d list of siblings
+		{
+			nrOfSiblings = siblings[i].Count;
+			deltaTheta = (2f * Mathf.PI) / nrOfSiblings;
+			if (nrOfSiblings > 0)
+				radius += Mathf.PI / 20 / nrOfSiblings;
+			else
+				radius += Mathf.PI / 20;
+
+			for (int j = 0; j < nrOfSiblings; j++) // Instantiate all siblings at level = i
+			{
+				position = new Vector3(radius * Mathf.Cos(theta), ((float)i / 2), radius * Mathf.Sin(theta));
+				CreatePrefab(siblings[i][j], position);
+				theta += deltaTheta;
+			}
+		}
+	}
+
 	private void PlanarRendering(Container root)
 	{
 		int nrOfLevels = 0;
@@ -136,7 +168,7 @@ public class DataPlotter : MonoBehaviour
 				break;
 
 			case RenderType.CONE:
-				Debug.Log("not implemented yet bruh");
+				ConeRendering(root);
 				break;
 		}
 	}

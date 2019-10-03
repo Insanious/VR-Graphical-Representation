@@ -25,6 +25,9 @@ public class ObjectClicker : MonoBehaviour
 				if (obj.name == "DataBall(Clone)")
 				{
 					obj.GetComponent<Container>().print();
+
+					foreach (Container child in obj.GetComponent<Container>().parent.self.GetComponent<Container>().children)
+						child.self.GetComponent<Renderer>().material.color = Color.blue;
 					/*
 					Debug.Log(obj.GetComponent<Container>().siblings.Count);
 
