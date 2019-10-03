@@ -14,9 +14,36 @@ public class Container : MonoBehaviour
 	public float size { get; set; }
 	public float weight { get; set; }
 
+	private static int RecursiveDepth(Container node, int depth)
+	{
+		depth++;
+		if (node.parent.name == "root")
+			return depth;
+		return RecursiveDepth(node.parent, depth);
+	}
+
+	private static float RecursiveSize(Container node, float size)
+	{
+		foreach (Container child in node.children)
+		{
+			if (child.size != 0) // leaf node, no children
+				size += child.size;
+			else
+				size = RecursiveSize(child, size);
+		}
+		return size;
+	}
+
 	public static int GetDepth(Container node)
 	{
-		return RecursiveDepth(node, 0);
+		return RecursiveDepth(node, 0); // Folder
+	}
+
+	public static float GetSize(Container node)
+	{
+		if (node.size > 0) // File
+			return node.size;
+		return RecursiveSize(node, 0);
 	}
 
 	public void print()
@@ -45,11 +72,5 @@ public class Container : MonoBehaviour
 		Debug.Log(output);
 	}
 
-	public static int RecursiveDepth(Container node, int depth)
-	{
-		depth++;
-		if (node.parent.name == "root")
-			return depth;
-		return RecursiveDepth(node.parent, depth);
-	}
+
 }

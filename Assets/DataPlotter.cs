@@ -17,6 +17,7 @@ public class DataPlotter : MonoBehaviour
 	{
 		Container root = JSONParser.Read(file);
 		InitializeNodes(root);
+		Debug.Log("total size of architecture = " + Container.GetSize(root));
 		RenderNodes(root, RenderType.PLANAR);
 	}
 
