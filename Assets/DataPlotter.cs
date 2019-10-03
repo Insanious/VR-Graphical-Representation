@@ -17,7 +17,6 @@ public class DataPlotter : MonoBehaviour
 	{
 		Container root = JSONParser.Read(file);
 		InitializeNodes(root);
-		Debug.Log("total size of architecture = " + Container.GetSize(root));
 		RenderNodes(root, RenderType.PLANAR);
 	}
 
@@ -26,6 +25,7 @@ public class DataPlotter : MonoBehaviour
 		Queue<Container> childrenQueue = new Queue<Container>();
 		Container parent = null;
 		int id = 0;
+		float colorTint = 0.2f;
 
 		root.parent = parent;
 		root.depth = 0;
@@ -45,6 +45,21 @@ public class DataPlotter : MonoBehaviour
 				child.parent = parent;
 				child.depth = Container.GetDepth(child);
 				child.id = id++;
+
+				Color color = new Color();
+				if (child.id == 1)
+					color = Color.red;
+				else if (child.id == 2)
+					color = Color.green;
+				else if (child.id == 3)
+					color = Color.blue;
+				else
+				{
+					Color pColor = parent.color;
+					color = new Color(pColor.r + colorTint, pColor.g + colorTint, pColor.b + colorTint);
+				}
+				Debug.Log(Color.red);
+				child.color = color;
 
 				childrenQueue.Enqueue(child);
 			}
@@ -101,7 +116,7 @@ public class DataPlotter : MonoBehaviour
 			gridSize = (int)Math.Ceiling(Math.Sqrt(nrOfSiblings)); // Nearest perfect square is the side for the grid and is calculated as the ceiling of sqrt(nrOfSiblings)
 
 			for (int j = 0; j < nrOfSiblings; j++) // Instantiate all siblings at level = i
-				CreatePrefab(siblings[i][j], new Vector3((j / gridSize) - (gridSize / 2), i + 1, (j % gridSize) - (gridSize / 2)), Color.black);
+				CreatePrefab(siblings[i][j], new Vector3((j / gridSize) - (gridSize / 2), i + 1, (j % gridSize) - (gridSize / 2)));
 		}
 	}
 
@@ -119,7 +134,7 @@ public class DataPlotter : MonoBehaviour
 		}
 	}
 
-	private void CreatePrefab(Container node, Vector3 position, Color color)
+	private void CreatePrefab(Container node, Vector3 position)
 	{
 		node.self = Instantiate(prefab, new Vector3(position.x, position.y, position.z), Quaternion.identity);
 
@@ -139,5 +154,10 @@ public class DataPlotter : MonoBehaviour
 		node.self.GetComponent<Container>().name = node.name;
 		node.self.GetComponent<Container>().size = node.size;
 		node.self.GetComponent<Container>().weight = node.weight;
+
+		node.self.GetComponent<Container>().color = new Color();
+		node.self.GetComponent<Container>().color = node.color;
+
+		node.self.GetComponent<Renderer>().material.color = node.self.GetComponent<Container>().color;
 	}
 }

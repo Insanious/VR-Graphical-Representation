@@ -13,6 +13,7 @@ public class Container : MonoBehaviour
 	public string name { get; set; }
 	public float size { get; set; }
 	public float weight { get; set; }
+	public Color color { get; set; }
 
 	private static int RecursiveDepth(Container node, int depth)
 	{
