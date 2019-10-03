@@ -38,7 +38,7 @@ public class DataPlotter : MonoBehaviour
 			foreach (Container child in parent.children)
 			{
 				child.siblings = new List<Container>();
-				foreach (var sibling in parent.children) // Add all siblings to child
+				foreach (var sibling in parent.children) // Add all siblings to all children
 					if (child.id != sibling.id)
 						child.siblings.Add(sibling);
 
@@ -47,19 +47,26 @@ public class DataPlotter : MonoBehaviour
 				child.id = id++;
 
 				Color color = new Color();
-				if (child.id == 1)
-					color = Color.red;
-				else if (child.id == 2)
-					color = Color.green;
-				else if (child.id == 3)
-					color = Color.blue;
-				else
+				if (child.id > 0 && child.id < 4)
 				{
-					Color pColor = parent.color;
-					color = new Color(pColor.r + colorTint, pColor.g + colorTint, pColor.b + colorTint);
+					child.color = new Color();
+					switch (child.id)
+					{
+						case 1:
+							child.color = Color.red;
+							break;
+						case 2:
+							child.color = Color.green;
+							break;
+						case 3:
+							child.color = Color.blue;
+							break;
+
+					}
 				}
-				Debug.Log(Color.red);
-				child.color = color;
+
+				else
+					child.color = new Color(parent.color.r + colorTint, parent.color.g + colorTint, parent.color.b + colorTint);
 
 				childrenQueue.Enqueue(child);
 			}
