@@ -21,42 +21,28 @@ public class Container : MonoBehaviour
 
 	public void print()
 	{
+		string output = System.String.Empty;
+		if (size == 0) // a folder has no size, only files has
+			output += "Type = folder";
+		else
+			output += "Type = file";
+
+		output += ", Name = " + name;
+
 		if (id == 0) // root
-			Debug.Log(
-			"Type = folder" +
-			", Name = " + name +
-			", Parent = null" +
-			", Id = " + id +
-			", Depth = " + depth +
-			", Size = " + size +
-			", Weight = " + weight +
-			", Number of children = " + children.Count +
-			", Number of siblings = " + siblings.Count
-			);
-		else if (size == 0) // Folder
-			Debug.Log(
-			"Type = folder" +
-			", Name = " + name +
-			", Parent = " + parent.name +
-			", Id = " + id +
-			", Depth = " + depth +
-			", Size = " + size +
-			", Weight = " + weight +
-			", Number of children = " + children.Count +
-			", Number of siblings = " + siblings.Count
-			);
-		else // File
-			Debug.Log(
-			"Type = file" +
-			", Name = " + name +
-			", Parent = " + parent.name +
-			", Id = " + id +
-			", Depth = " + depth +
-			", Size = " + size +
-			", Weight = " + weight +
-			", Number of children = " + children.Count +
-			", Number of siblings = " + siblings.Count
-			);
+			output += ", Parent = null";
+		else
+			output += ", Parent = " + parent.name;
+
+		output +=
+		", Id = " + id +
+		", Depth = " + depth +
+		", Size = " + size +
+		", Weight = " + weight +
+		", Number of children = " + children.Count +
+		", Number of siblings = " + siblings.Count;
+
+		Debug.Log(output);
 	}
 
 	public static int RecursiveDepth(Container node, int depth)
