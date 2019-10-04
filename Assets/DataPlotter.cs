@@ -7,18 +7,20 @@ using System;
 public class DataPlotter : MonoBehaviour
 {
 	enum RenderType { PLANAR, CONE };
+	enum RenderMode { SIBLINGS, COUSINS };
 
 	public GameObject prefab;
 	public List<Container> nodes;
 	public string file;
 	public int maxDepth = 0;
+	public float size = 0;
 
 	private void Start()
 	{
 		Container root = JSONParser.Read(file);
 		InitializeNodes(root);
-		Debug.Log("total size of architecture = " + Container.GetSize(root));
-		RenderNodes(root, RenderType.CONE);
+		size = Container.GetSize(root);
+		RenderNodes(root, RenderType.CONE, RenderMode.COUSINS);
 	}
 
 	public void InitializeNodes(Container root)
@@ -47,7 +49,6 @@ public class DataPlotter : MonoBehaviour
 				child.depth = Container.GetDepth(child);
 				child.id = id++;
 
-				Color color = new Color();
 				if (child.id > 0 && child.id < 4)
 				{
 					child.color = new Color();
@@ -74,10 +75,36 @@ public class DataPlotter : MonoBehaviour
 		}
 	}
 
-	private List<List<Container>> GetSiblings(Container root)
+	private List<List<Container>> GetAllCousins(Container root)
 	{
+		Container child = root;
+		Queue<Container> childrenQueue = new Queue<Container>();
+		List<List<Container>> cousins = new List<List<Container>>();
+		int level = 0;
+
+		cousins.Add(new List<Container>());
+
+		childrenQueue.Enqueue(root);
+		while (childrenQueue.Count != 0)
+		{
+			child = childrenQueue.Dequeue();
+			foreach (Container grandchild in child.children) // Add the parent's children to the queue
+				childrenQueue.Enqueue(grandchild);
+
+			if (child.depth != level)
+			{
+				cousins.Add(new List<Container>());
+				level++;
+			}
+			cousins[level].Add(child);
+		}
+		return cousins;
+	}
+
+	private List<List<Container>> GetAllSiblings(Container root)
+	{
+		Container child = root;
 		Container parent = root;
-		Container grandParent = root;
 		Queue<Container> childrenQueue = new Queue<Container>();
 		List<List<Container>> siblings = new List<List<Container>>();
 		int level = 0;
@@ -86,96 +113,143 @@ public class DataPlotter : MonoBehaviour
 		siblings[level++].Add(root); // Add root as the single object at the first level
 		siblings.Add(new List<Container>());
 
-		foreach (Container child in root.children) // Add root's children to the queue
-			childrenQueue.Enqueue(child);
+		// Cover edge case so we don't need to check against root's parent, since it's parent is null
+		foreach (Container grandchild in root.children) // Add root's children to the queue
+			childrenQueue.Enqueue(grandchild);
 
 		while (childrenQueue.Count != 0)
 		{
-			parent = childrenQueue.Dequeue();
-			foreach (Container child in parent.children) // Add the parent's children to the queue
-				childrenQueue.Enqueue(child);
+			child = childrenQueue.Dequeue();
+			foreach (Container grandchild in child.children) // Add the parent's children to the queue
+				childrenQueue.Enqueue(grandchild);
 
-			if (grandParent.id != parent.parent.id) // If there is a new grandparent, increment level
+			if (child.parent.id != parent.id) // If there is a new grandparent, increment level
 			{
-				grandParent = parent.parent;
+				parent = child.parent;
 				level++;
 				siblings.Add(new List<Container>());
 			}
 
-			siblings[level].Add(parent);
+			siblings[level].Add(child);
 		}
 
 		return siblings;
 	}
 
-	private void ConeRendering(Container root)
+	private void ConeRendering(Container root, RenderMode mode)
 	{
-		List<List<Container>> siblings;
+		List<List<Container>> nodes;
+		Vector3 size;
 		Vector3 position;
 		int nrOfLevels = 0;
-		int nrOfSiblings = 0;
-		float radius = 1;
+		int nrOfNodes = 0;
+		float totalSize = 1f;
+		float radius = .1f;
+		float newRadius = 0f;
+		float increment = .1f;
 		float deltaTheta = 0f;
 		float theta = 0f;
 
-		siblings = GetSiblings(root);
-		nrOfLevels = siblings.Count;
-
-		for (int i = 0; i < nrOfLevels; i++) // Create all prefabs from the 2d list of siblings
+		switch (mode)
 		{
-			nrOfSiblings = siblings[i].Count;
-			deltaTheta = (2f * Mathf.PI) / nrOfSiblings;
-			if (nrOfSiblings > 0)
-				radius += Mathf.PI / 20 / nrOfSiblings;
-			else
-				radius += Mathf.PI / 20;
+			case RenderMode.SIBLINGS:
+				nodes = GetAllSiblings(root);
+				break;
+			case RenderMode.COUSINS:
+				nodes = GetAllCousins(root);
+				break;
+			default:
+				Debug.Log("Wrong mode. Exiting");
+				return;
+		}
 
-			for (int j = 0; j < nrOfSiblings; j++) // Instantiate all siblings at level = i
+		nrOfLevels = nodes.Count;
+
+		for (int i = 0; i < nrOfLevels; i++) // Create all prefabs from the 2d list of nodes
+		{
+			nrOfNodes = nodes[i].Count;
+
+			totalSize = nrOfNodes * 0.25f;
+			//Debug.Log("totalSize = " + totalSize);
+
+			deltaTheta = (2f * Mathf.PI) / nrOfNodes;
+			radius = nrOfNodes / (Mathf.PI / 0.125f);
+			//Debug.Log("new = " + newRadius + " old = " + radius);
+
+			// if (newRadius > radius)
+			// 	radius = newRadius;
+
+			for (int j = 0; j < nrOfNodes; j++) // Instantiate all nodes at level = i
 			{
-				position = new Vector3(radius * Mathf.Cos(theta), ((float)i / 2), radius * Mathf.Sin(theta));
-				CreatePrefab(siblings[i][j], position);
+				//size = new Vector3(nodes[i][j].size / 15, nodes[i][j].size / 15, nodes[i][j].size / 15);
+				size = new Vector3(.25f, .25f, .25f);
+				position = new Vector3(radius * Mathf.Cos(theta), (2*i), radius * Mathf.Sin(theta));
+				CreatePrefab(nodes[i][j], position, size);
+
 				theta += deltaTheta;
+			}
+			radius += increment;
+		}
+	}
+
+	private void PlanarRendering(Container root, RenderMode mode)
+	{
+		int nrOfLevels = 0;
+		float gridSize = 0;
+		int nrOfNodes = 0;
+		List<List<Container>> nodes;
+		Vector3	size;
+		Vector3 position;
+
+		switch (mode)
+		{
+			case RenderMode.SIBLINGS:
+				nodes = GetAllSiblings(root);
+				break;
+			case RenderMode.COUSINS:
+				nodes = GetAllCousins(root);
+				break;
+			default:
+				Debug.Log("Wrong mode. Exiting");
+				return;
+		}
+
+		nrOfLevels = nodes.Count;
+
+		for (int i = 0; i < nrOfLevels; i++) // Create all prefabs from the 2d list of nodes
+		{
+			nrOfNodes = nodes[i].Count;
+			gridSize = (int)Math.Ceiling(Math.Sqrt(nrOfNodes)); // Nearest perfect square is the side for the grid and is calculated as the ceiling of sqrt(nrOfNodes)
+
+			for (int j = 0; j < nrOfNodes; j++) // Instantiate all nodes at level = i
+			{
+				position = new Vector3((j / gridSize) - (gridSize / 2), i + 1, (j % gridSize) - (gridSize / 2));
+				//size = new Vector3(nodes[i][j].size / 15, nodes[i][j].size / 15, nodes[i][j].size / 15);
+				size = new Vector3(.25f, .25f, .25f);
+				CreatePrefab(nodes[i][j], position, size);
 			}
 		}
 	}
 
-	private void PlanarRendering(Container root)
-	{
-		int nrOfLevels = 0;
-		float gridSize = 0;
-		int nrOfSiblings = 0;
-		List<List<Container>> siblings;
-
-		siblings = GetSiblings(root);
-		nrOfLevels = siblings.Count;
-
-		for (int i = 0; i < nrOfLevels; i++) // Create all prefabs from the 2d list of siblings
-		{
-			nrOfSiblings = siblings[i].Count;
-			gridSize = (int)Math.Ceiling(Math.Sqrt(nrOfSiblings)); // Nearest perfect square is the side for the grid and is calculated as the ceiling of sqrt(nrOfSiblings)
-
-			for (int j = 0; j < nrOfSiblings; j++) // Instantiate all siblings at level = i
-				CreatePrefab(siblings[i][j], new Vector3((j / gridSize) - (gridSize / 2), i + 1, (j % gridSize) - (gridSize / 2)));
-		}
-	}
-
-	private void RenderNodes(Container root, RenderType type)
+	private void RenderNodes(Container root, RenderType type, RenderMode mode)
 	{
 		switch (type)
 		{
 			case RenderType.PLANAR:
-				PlanarRendering(root);
+				PlanarRendering(root, mode);
 				break;
 
 			case RenderType.CONE:
-				ConeRendering(root);
+				ConeRendering(root, mode);
 				break;
 		}
 	}
 
-	private void CreatePrefab(Container node, Vector3 position)
+	private void CreatePrefab(Container node, Vector3 position, Vector3 size)
 	{
 		node.self = Instantiate(prefab, new Vector3(position.x, position.y, position.z), Quaternion.identity);
+		node.self.transform.localScale = size;
+		Debug.Log(node.size);
 
 		node.self.GetComponent<Container>().children = new List<Container>();
 		if (node.children != null)
