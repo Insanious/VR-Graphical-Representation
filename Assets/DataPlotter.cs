@@ -7,7 +7,7 @@ using System;
 public class DataPlotter : MonoBehaviour
 {
 	enum RenderType { PLANAR, CONE };
-	enum RenderMode { SIBLINGS, COUSINS };
+	enum RenderMode { SIBLINGS, LEVELS };
 
 	public GameObject prefab;
 	public List<Container> nodes;
@@ -19,8 +19,7 @@ public class DataPlotter : MonoBehaviour
 	{
 		Container root = JSONParser.Read(file);
 		InitializeNodes(root);
-		size = Container.GetSize(root);
-		RenderNodes(root, RenderType.CONE, RenderMode.COUSINS);
+		RenderNodes(root, RenderType.CONE, RenderMode.LEVELS);
 	}
 
 	public void InitializeNodes(Container root)
@@ -63,7 +62,6 @@ public class DataPlotter : MonoBehaviour
 						case 3:
 							child.color = Color.blue;
 							break;
-
 					}
 				}
 
@@ -75,14 +73,32 @@ public class DataPlotter : MonoBehaviour
 		}
 	}
 
-	private List<List<Container>> GetAllCousins(Container root)
+	private List<List<Container>> GetNodes(Container root, RenderMode mode)
+	{
+		List<List<Container>> nodes = new List<List<Container>>();
+		switch (mode)
+		{
+			case RenderMode.SIBLINGS:
+				nodes = GetAllSiblings(root);
+				break;
+			case RenderMode.LEVELS:
+				nodes = GetAllLevels(root);
+				break;
+			default:
+				Debug.Log("Wrong mode.");
+				break;
+		}
+		return nodes;
+	}
+
+	private List<List<Container>> GetAllLevels(Container root)
 	{
 		Container child = root;
 		Queue<Container> childrenQueue = new Queue<Container>();
-		List<List<Container>> cousins = new List<List<Container>>();
+		List<List<Container>> levels = new List<List<Container>>();
 		int level = 0;
 
-		cousins.Add(new List<Container>());
+		levels.Add(new List<Container>());
 
 		childrenQueue.Enqueue(root);
 		while (childrenQueue.Count != 0)
@@ -93,12 +109,12 @@ public class DataPlotter : MonoBehaviour
 
 			if (child.depth != level)
 			{
-				cousins.Add(new List<Container>());
+				levels.Add(new List<Container>());
 				level++;
 			}
-			cousins[level].Add(child);
+			levels[level].Add(child);
 		}
-		return cousins;
+		return levels;
 	}
 
 	private List<List<Container>> GetAllSiblings(Container root)
@@ -143,25 +159,11 @@ public class DataPlotter : MonoBehaviour
 		Vector3 position;
 		int nrOfLevels = 0;
 		int nrOfNodes = 0;
-		float totalSize = 1f;
 		float radius = .1f;
-		float newRadius = 0f;
-		float increment = .1f;
 		float deltaTheta = 0f;
 		float theta = 0f;
 
-		switch (mode)
-		{
-			case RenderMode.SIBLINGS:
-				nodes = GetAllSiblings(root);
-				break;
-			case RenderMode.COUSINS:
-				nodes = GetAllCousins(root);
-				break;
-			default:
-				Debug.Log("Wrong mode. Exiting");
-				return;
-		}
+		nodes = GetNodes(root, mode);
 
 		nrOfLevels = nodes.Count;
 
@@ -169,26 +171,16 @@ public class DataPlotter : MonoBehaviour
 		{
 			nrOfNodes = nodes[i].Count;
 
-			totalSize = nrOfNodes * 0.25f;
-			//Debug.Log("totalSize = " + totalSize);
-
 			deltaTheta = (2f * Mathf.PI) / nrOfNodes;
 			radius = nrOfNodes / (Mathf.PI / 0.125f);
-			//Debug.Log("new = " + newRadius + " old = " + radius);
-
-			// if (newRadius > radius)
-			// 	radius = newRadius;
 
 			for (int j = 0; j < nrOfNodes; j++) // Instantiate all nodes at level = i
 			{
-				//size = new Vector3(nodes[i][j].size / 15, nodes[i][j].size / 15, nodes[i][j].size / 15);
 				size = new Vector3(.25f, .25f, .25f);
 				position = new Vector3(radius * Mathf.Cos(theta), (2*i), radius * Mathf.Sin(theta));
 				CreatePrefab(nodes[i][j], position, size);
-
 				theta += deltaTheta;
 			}
-			radius += increment;
 		}
 	}
 
@@ -201,21 +193,9 @@ public class DataPlotter : MonoBehaviour
 		Vector3	size;
 		Vector3 position;
 
-		switch (mode)
-		{
-			case RenderMode.SIBLINGS:
-				nodes = GetAllSiblings(root);
-				break;
-			case RenderMode.COUSINS:
-				nodes = GetAllCousins(root);
-				break;
-			default:
-				Debug.Log("Wrong mode. Exiting");
-				return;
-		}
+		nodes = GetNodes(root, mode);
 
 		nrOfLevels = nodes.Count;
-
 		for (int i = 0; i < nrOfLevels; i++) // Create all prefabs from the 2d list of nodes
 		{
 			nrOfNodes = nodes[i].Count;
@@ -223,9 +203,8 @@ public class DataPlotter : MonoBehaviour
 
 			for (int j = 0; j < nrOfNodes; j++) // Instantiate all nodes at level = i
 			{
-				position = new Vector3((j / gridSize) - (gridSize / 2), i + 1, (j % gridSize) - (gridSize / 2));
-				//size = new Vector3(nodes[i][j].size / 15, nodes[i][j].size / 15, nodes[i][j].size / 15);
 				size = new Vector3(.25f, .25f, .25f);
+				position = new Vector3((j / gridSize) - (gridSize / 2), i + 1, (j % gridSize) - (gridSize / 2));
 				CreatePrefab(nodes[i][j], position, size);
 			}
 		}
@@ -249,7 +228,6 @@ public class DataPlotter : MonoBehaviour
 	{
 		node.self = Instantiate(prefab, new Vector3(position.x, position.y, position.z), Quaternion.identity);
 		node.self.transform.localScale = size;
-		Debug.Log(node.size);
 
 		node.self.GetComponent<Container>().children = new List<Container>();
 		if (node.children != null)
@@ -267,8 +245,6 @@ public class DataPlotter : MonoBehaviour
 		node.self.GetComponent<Container>().name = node.name;
 		node.self.GetComponent<Container>().size = node.size;
 		node.self.GetComponent<Container>().weight = node.weight;
-
-		node.self.GetComponent<Container>().color = new Color();
 		node.self.GetComponent<Container>().color = node.color;
 
 		node.self.GetComponent<Renderer>().material.color = node.self.GetComponent<Container>().color;
