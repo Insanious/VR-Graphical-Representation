@@ -4,12 +4,16 @@ using UnityEngine;
 
 public class Linker : MonoBehaviour
 {
+	public Container container;
+	public GameObject line;
+
 	public class Container
 	{
 		public GameObject self;
 		public List<Container> children { get; set; }
 		public List<Container> siblings { get; set; }
 		public Container parent { get; set; }
+		public bool drawingLine;
 		public int id { get; set; }
 		public int depth { get; set; }
 		public string name { get; set; }
@@ -50,7 +54,7 @@ public class Linker : MonoBehaviour
 		return RecursiveSize(node, 0);
 	}
 
-	public void print()
+	public void Print()
 	{
 		string output = System.String.Empty;
 		if (container.size == 0) // a folder has no size, only files has
@@ -76,5 +80,80 @@ public class Linker : MonoBehaviour
 		Debug.Log(output);
 	}
 
-	public Container container;
+	public void ToggleSubtreeLines()
+	{
+		if (container.children.Count == 0)
+			return;
+
+		bool drawing = false;
+
+		foreach (Linker.Container child in container.children)
+		{
+			if (child.drawingLine)
+			{
+				drawing = true;
+				break;
+			}
+		}
+
+		if (drawing)
+			DisableSubtreeLines();
+		else
+			EnableSubtreeLines();
+	}
+
+	private void DisableSubtreeLines()
+	{
+		Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
+		Linker.Container parent;
+
+		childrenQueue.Enqueue(container);
+		while(childrenQueue.Count != 0)
+		{
+			parent = childrenQueue.Dequeue();
+
+			foreach (Linker.Container child in parent.children)
+			{
+				childrenQueue.Enqueue(child);
+
+				child.drawingLine = false;
+				child.self.GetComponent<Linker>().line.GetComponent<LineRenderer>().positionCount = 0;
+			}
+		}
+	}
+
+	private void EnableSubtreeLines()
+	{
+		Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
+		Linker.Container parent;
+		Vector3 parentPos;
+		Color parentColor;
+		Vector3 childPos;
+		Color childColor;
+
+		childrenQueue.Enqueue(container);
+		while(childrenQueue.Count != 0)
+		{
+			parent = childrenQueue.Dequeue();
+			parentPos = parent.self.transform.position;
+			parentColor = parent.color;
+
+			foreach (Linker.Container child in parent.children)
+			{
+				childrenQueue.Enqueue(child);
+
+				childPos = child.self.transform.position;
+				childColor = child.color;
+
+				child.drawingLine = true;
+				child.self.GetComponent<Linker>().line = Instantiate(child.self.GetComponent<Linker>().line);
+				child.self.GetComponent<Linker>().line.GetComponent<LineRenderer>().positionCount = 2;
+				child.self.GetComponent<Linker>().line.GetComponent<LineRenderer>().SetPosition(0, new Vector3(childPos.x, childPos.y, childPos.z));
+				child.self.GetComponent<Linker>().line.GetComponent<LineRenderer>().SetPosition(1, new Vector3(parentPos.x, parentPos.y, parentPos.z));
+				child.self.GetComponent<Linker>().line.GetComponent<LineRenderer>().material = new Material(Shader.Find("Sprites/Default"));
+				child.self.GetComponent<Linker>().line.GetComponent<LineRenderer>().startColor = childColor;
+				child.self.GetComponent<Linker>().line.GetComponent<LineRenderer>().endColor = parentColor;
+			}
+		}
+	}
 }

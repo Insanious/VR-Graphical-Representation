@@ -22,16 +22,19 @@ public class ObjectClicker : MonoBehaviour
 			{
 				GameObject obj = hit.transform.gameObject;
 				//Debug.Log(obj.name);
-				if (obj.name == "DataBall(Clone)")
+				if (obj.name == "DataBall(Clone)" || obj.name == "Cube(Clone)")
 				{
-					obj.GetComponent<Linker>().print();
-					if (obj.GetComponent<Linker>().container.id != 0) // If not root
-					{
-						var parent = obj.GetComponent<Linker>().container.parent.self;
+					obj.GetComponent<Linker>().Print();
+					obj.GetComponent<Linker>().ToggleSubtreeLines();
 
-						foreach (Linker.Container child in parent.GetComponent<Linker>().container.children)
-							child.self.GetComponent<Renderer>().material.color = Color.blue;
-					}
+					// if (obj.GetComponent<Linker>().container.id != 0) // If not root
+					// {
+					// 	var parent = obj.GetComponent<Linker>().container.parent.self;
+					//
+					// 	foreach (Linker.Container child in parent.GetComponent<Linker>().container.children)
+					// 		child.self.GetComponent<Renderer>().material.color = Color.blue;
+					// }
+
 					/*
 					Debug.Log(obj.GetComponent<Container>().siblings.Count);
 

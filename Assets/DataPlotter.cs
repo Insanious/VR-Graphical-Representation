@@ -9,17 +9,19 @@ public class DataPlotter : MonoBehaviour
 	enum RenderType { PLANAR, CONE };
 	enum RenderMode { SIBLINGS, LEVELS };
 
-	public GameObject prefab;
+	public GameObject folderPrefab;
+	public GameObject filePrefab;
+	public GameObject linePrefab;
 
 	private List<List<Linker.Container>> nodes;
-	private Queue<Linker.Container> childrenQueue;
 	private List<List<Linker.Container>> siblings;
+	private Queue<Linker.Container> childrenQueue;
 	private Linker.Container root;
-	Linker.Container parent;
+	private Linker.Container parent;
 	private Linker.Container child;
-	public string file;
 	private int maxDepth;
 	private int level;
+	public string file;
 
 	private void Start()
 	{
@@ -29,8 +31,50 @@ public class DataPlotter : MonoBehaviour
 		maxDepth = level = 0;
 
 		root = JSONParser.Read(file);
+
 		InitializeNodes();
 		RenderNodes(RenderType.CONE, RenderMode.LEVELS);
+		DrawAllLines();
+	}
+
+	public void DrawAllLines()
+	{
+		childrenQueue.Enqueue(root);
+		while (childrenQueue.Count != 0)
+		{
+			parent = childrenQueue.Dequeue();
+			foreach (Linker.Container child in parent.children)
+			{
+				childrenQueue.Enqueue(child);
+				DrawLine(parent, child);
+			}
+		}
+
+	}
+
+	public void DrawLine(Linker.Container parent, Linker.Container child)
+	{
+		/*
+		Vector3 parentPos;
+		Color parentColor = new Color();
+		Vector3 childPos;
+		Color childColor = new Color();
+
+		parentPos = parent.self.transform.position;
+		parentColor = parent.color;
+		//parentColor.a = 0;
+
+		childPos = child.self.transform.position;
+		childColor = child.color;
+		//childColor.a = 0;
+
+		child.line = Instantiate(linePrefab);
+		child.line.GetComponent<LineRenderer>().SetPosition(0, new Vector3(childPos.x, childPos.y, childPos.z));
+		child.line.GetComponent<LineRenderer>().SetPosition(1, new Vector3(parentPos.x, parentPos.y, parentPos.z));
+		child.line.GetComponent<LineRenderer>().material = new Material(Shader.Find("Sprites/Default"));
+		child.line.GetComponent<LineRenderer>().startColor = childColor;
+		child.line.GetComponent<LineRenderer>().endColor = parentColor;
+		*/
 	}
 
 	public void InitializeNodes()
@@ -172,7 +216,7 @@ public class DataPlotter : MonoBehaviour
 
 		nrOfLevels = nodes.Count;
 
-		for (int i = 0; i < nrOfLevels; i++) // Create all prefabs from the 2d list of nodes
+		for (int i = 0; i < nrOfLevels; i++) // Create all folderPrefabs from the 2d list of nodes
 		{
 			nrOfNodes = nodes[i].Count;
 
@@ -182,8 +226,8 @@ public class DataPlotter : MonoBehaviour
 			for (int j = 0; j < nrOfNodes; j++) // Instantiate all nodes at level = i
 			{
 				size = new Vector3(.25f, .25f, .25f);
-				position = new Vector3(radius * Mathf.Cos(theta), (2*i), radius * Mathf.Sin(theta));
-				CreatePrefab(nodes[i][j], position, size);
+				position = new Vector3(radius * Mathf.Cos(theta), (4*i), radius * Mathf.Sin(theta));
+				CreateNode(nodes[i][j], position, size);
 				theta += deltaTheta;
 			}
 		}
@@ -191,16 +235,16 @@ public class DataPlotter : MonoBehaviour
 
 	private void PlanarRendering(RenderMode mode)
 	{
+		Vector3	size;
+		Vector3 position;
 		int nrOfLevels = 0;
 		float gridSize = 0;
 		int nrOfNodes = 0;
-		Vector3	size;
-		Vector3 position;
 
 		nodes = GetNodes(mode);
 
 		nrOfLevels = nodes.Count;
-		for (int i = 0; i < nrOfLevels; i++) // Create all prefabs from the 2d list of nodes
+		for (int i = 0; i < nrOfLevels; i++) // Create all folderPrefabs from the 2d list of nodes
 		{
 			nrOfNodes = nodes[i].Count;
 			gridSize = (int)Math.Ceiling(Math.Sqrt(nrOfNodes)); // Nearest perfect square is the side for the grid and is calculated as the ceiling of sqrt(nrOfNodes)
@@ -209,7 +253,7 @@ public class DataPlotter : MonoBehaviour
 			{
 				size = new Vector3(.25f, .25f, .25f);
 				position = new Vector3((j / gridSize) - (gridSize / 2), i + 1, (j % gridSize) - (gridSize / 2));
-				CreatePrefab(nodes[i][j], position, size);
+				CreateNode(nodes[i][j], position, size);
 			}
 		}
 	}
@@ -228,12 +272,17 @@ public class DataPlotter : MonoBehaviour
 		}
 	}
 
-	private void CreatePrefab(Linker.Container node, Vector3 position, Vector3 size)
+	private void CreateNode(Linker.Container node, Vector3 position, Vector3 size)
 	{
+		GameObject prefab;
+		if (node.size == 0)
+			prefab = filePrefab;
+		else
+			prefab = folderPrefab;
+
 		var obj = Instantiate(prefab, new Vector3(position.x, position.y, position.z), Quaternion.identity);
 		obj.transform.localScale = size;
 
-		obj.GetComponent<Linker>().container = new Linker.Container();
 		obj.GetComponent<Linker>().container = node;
 		obj.GetComponent<Linker>().container.self = obj;
 
