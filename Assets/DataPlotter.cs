@@ -10,26 +10,37 @@ public class DataPlotter : MonoBehaviour
 	enum RenderMode { SIBLINGS, LEVELS };
 
 	public GameObject prefab;
-	public List<Container> nodes;
+
+	private List<List<Linker.Container>> nodes;
+	private Queue<Linker.Container> childrenQueue;
+	private List<List<Linker.Container>> siblings;
+	private Linker.Container root;
+	Linker.Container parent;
+	private Linker.Container child;
 	public string file;
-	public int maxDepth = 0;
-	public float size = 0;
+	private int maxDepth;
+	private int level;
 
 	private void Start()
 	{
-		Container root = JSONParser.Read(file);
-		InitializeNodes(root);
-		RenderNodes(root, RenderType.CONE, RenderMode.LEVELS);
+		nodes = new List<List<Linker.Container>>();
+		childrenQueue = new Queue<Linker.Container>();
+		siblings = new List<List<Linker.Container>>();
+		maxDepth = level = 0;
+
+		root = JSONParser.Read(file);
+		InitializeNodes();
+		RenderNodes(RenderType.CONE, RenderMode.LEVELS);
 	}
 
-	public void InitializeNodes(Container root)
+	public void InitializeNodes()
 	{
-		Queue<Container> childrenQueue = new Queue<Container>();
-		Container parent = null;
+		parent = null;
 		int id = 0;
 		float colorTint = 0.2f;
 
 		root.parent = parent;
+		root.siblings = new List<Linker.Container>();
 		root.depth = 0;
 		root.id = id++;
 
@@ -37,15 +48,15 @@ public class DataPlotter : MonoBehaviour
 		while (childrenQueue.Count != 0)
 		{
 			parent = childrenQueue.Dequeue();
-			foreach (Container child in parent.children)
+			foreach (Linker.Container child in parent.children)
 			{
-				child.siblings = new List<Container>();
+				child.siblings = new List<Linker.Container>();
 				foreach (var sibling in parent.children) // Add all siblings to all children
 					if (child.id != sibling.id)
 						child.siblings.Add(sibling);
 
 				child.parent = parent;
-				child.depth = Container.GetDepth(child);
+				child.depth = Linker.GetDepth(child);
 				child.id = id++;
 
 				if (child.id > 0 && child.id < 4)
@@ -73,16 +84,15 @@ public class DataPlotter : MonoBehaviour
 		}
 	}
 
-	private List<List<Container>> GetNodes(Container root, RenderMode mode)
+	private List<List<Linker.Container>> GetNodes(RenderMode mode)
 	{
-		List<List<Container>> nodes = new List<List<Container>>();
 		switch (mode)
 		{
 			case RenderMode.SIBLINGS:
-				nodes = GetAllSiblings(root);
+				nodes = GetAllSiblings();
 				break;
 			case RenderMode.LEVELS:
-				nodes = GetAllLevels(root);
+				nodes = GetAllLevels();
 				break;
 			default:
 				Debug.Log("Wrong mode.");
@@ -91,25 +101,24 @@ public class DataPlotter : MonoBehaviour
 		return nodes;
 	}
 
-	private List<List<Container>> GetAllLevels(Container root)
+	private List<List<Linker.Container>> GetAllLevels()
 	{
-		Container child = root;
-		Queue<Container> childrenQueue = new Queue<Container>();
-		List<List<Container>> levels = new List<List<Container>>();
-		int level = 0;
+		child = root;
+		level = 0;
+		List<List<Linker.Container>> levels = new List<List<Linker.Container>>();
 
-		levels.Add(new List<Container>());
+		levels.Add(new List<Linker.Container>());
 
 		childrenQueue.Enqueue(root);
 		while (childrenQueue.Count != 0)
 		{
 			child = childrenQueue.Dequeue();
-			foreach (Container grandchild in child.children) // Add the parent's children to the queue
+			foreach (Linker.Container grandchild in child.children) // Add the parent's children to the queue
 				childrenQueue.Enqueue(grandchild);
 
 			if (child.depth != level)
 			{
-				levels.Add(new List<Container>());
+				levels.Add(new List<Linker.Container>());
 				level++;
 			}
 			levels[level].Add(child);
@@ -117,33 +126,30 @@ public class DataPlotter : MonoBehaviour
 		return levels;
 	}
 
-	private List<List<Container>> GetAllSiblings(Container root)
+	private List<List<Linker.Container>> GetAllSiblings()
 	{
-		Container child = root;
-		Container parent = root;
-		Queue<Container> childrenQueue = new Queue<Container>();
-		List<List<Container>> siblings = new List<List<Container>>();
-		int level = 0;
+		parent = child = root;
+		level = 0;
 
-		siblings.Add(new List<Container>());
+		siblings.Add(new List<Linker.Container>());
 		siblings[level++].Add(root); // Add root as the single object at the first level
-		siblings.Add(new List<Container>());
+		siblings.Add(new List<Linker.Container>());
 
 		// Cover edge case so we don't need to check against root's parent, since it's parent is null
-		foreach (Container grandchild in root.children) // Add root's children to the queue
+		foreach (Linker.Container grandchild in root.children) // Add root's children to the queue
 			childrenQueue.Enqueue(grandchild);
 
 		while (childrenQueue.Count != 0)
 		{
 			child = childrenQueue.Dequeue();
-			foreach (Container grandchild in child.children) // Add the parent's children to the queue
+			foreach (Linker.Container grandchild in child.children) // Add the parent's children to the queue
 				childrenQueue.Enqueue(grandchild);
 
 			if (child.parent.id != parent.id) // If there is a new grandparent, increment level
 			{
 				parent = child.parent;
 				level++;
-				siblings.Add(new List<Container>());
+				siblings.Add(new List<Linker.Container>());
 			}
 
 			siblings[level].Add(child);
@@ -152,9 +158,8 @@ public class DataPlotter : MonoBehaviour
 		return siblings;
 	}
 
-	private void ConeRendering(Container root, RenderMode mode)
+	private void ConeRendering(RenderMode mode)
 	{
-		List<List<Container>> nodes;
 		Vector3 size;
 		Vector3 position;
 		int nrOfLevels = 0;
@@ -163,7 +168,7 @@ public class DataPlotter : MonoBehaviour
 		float deltaTheta = 0f;
 		float theta = 0f;
 
-		nodes = GetNodes(root, mode);
+		nodes = GetNodes(mode);
 
 		nrOfLevels = nodes.Count;
 
@@ -184,16 +189,15 @@ public class DataPlotter : MonoBehaviour
 		}
 	}
 
-	private void PlanarRendering(Container root, RenderMode mode)
+	private void PlanarRendering(RenderMode mode)
 	{
 		int nrOfLevels = 0;
 		float gridSize = 0;
 		int nrOfNodes = 0;
-		List<List<Container>> nodes;
 		Vector3	size;
 		Vector3 position;
 
-		nodes = GetNodes(root, mode);
+		nodes = GetNodes(mode);
 
 		nrOfLevels = nodes.Count;
 		for (int i = 0; i < nrOfLevels; i++) // Create all prefabs from the 2d list of nodes
@@ -210,43 +214,29 @@ public class DataPlotter : MonoBehaviour
 		}
 	}
 
-	private void RenderNodes(Container root, RenderType type, RenderMode mode)
+	private void RenderNodes(RenderType type, RenderMode mode)
 	{
 		switch (type)
 		{
 			case RenderType.PLANAR:
-				PlanarRendering(root, mode);
+				PlanarRendering(mode);
 				break;
 
 			case RenderType.CONE:
-				ConeRendering(root, mode);
+				ConeRendering(mode);
 				break;
 		}
 	}
 
-	private void CreatePrefab(Container node, Vector3 position, Vector3 size)
+	private void CreatePrefab(Linker.Container node, Vector3 position, Vector3 size)
 	{
-		node.self = Instantiate(prefab, new Vector3(position.x, position.y, position.z), Quaternion.identity);
-		node.self.transform.localScale = size;
+		var obj = Instantiate(prefab, new Vector3(position.x, position.y, position.z), Quaternion.identity);
+		obj.transform.localScale = size;
 
-		node.self.GetComponent<Container>().children = new List<Container>();
-		if (node.children != null)
-			foreach (Container child in node.children)
-				node.self.GetComponent<Container>().children.Add(child);
+		obj.GetComponent<Linker>().container = new Linker.Container();
+		obj.GetComponent<Linker>().container = node;
+		obj.GetComponent<Linker>().container.self = obj;
 
-		node.self.GetComponent<Container>().siblings = new List<Container>();
-		if (node.siblings != null)
-			foreach (Container sibling in node.siblings)
-				node.self.GetComponent<Container>().siblings.Add(sibling);
-
-		node.self.GetComponent<Container>().parent = node.parent;
-		node.self.GetComponent<Container>().id = node.id;
-		node.self.GetComponent<Container>().depth = node.depth;
-		node.self.GetComponent<Container>().name = node.name;
-		node.self.GetComponent<Container>().size = node.size;
-		node.self.GetComponent<Container>().weight = node.weight;
-		node.self.GetComponent<Container>().color = node.color;
-
-		node.self.GetComponent<Renderer>().material.color = node.self.GetComponent<Container>().color;
+		obj.GetComponent<Renderer>().material.color = obj.GetComponent<Linker>().container.color;
 	}
 }

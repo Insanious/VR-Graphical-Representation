@@ -24,10 +24,14 @@ public class ObjectClicker : MonoBehaviour
 				//Debug.Log(obj.name);
 				if (obj.name == "DataBall(Clone)")
 				{
-					obj.GetComponent<Container>().print();
+					obj.GetComponent<Linker>().print();
+					if (obj.GetComponent<Linker>().container.id != 0) // If not root
+					{
+						var parent = obj.GetComponent<Linker>().container.parent.self;
 
-					foreach (Container child in obj.GetComponent<Container>().parent.self.GetComponent<Container>().children)
-						child.self.GetComponent<Renderer>().material.color = Color.blue;
+						foreach (Linker.Container child in parent.GetComponent<Linker>().container.children)
+							child.self.GetComponent<Renderer>().material.color = Color.blue;
+					}
 					/*
 					Debug.Log(obj.GetComponent<Container>().siblings.Count);
 

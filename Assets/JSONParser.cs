@@ -7,8 +7,8 @@ using System.IO;
 //[Serializable]
 public class JSONParser
 {
-	public static Container Read(string file)
+	public static Linker.Container Read(string file)
 	{
-		return JsonConvert.DeserializeObject<Container>(File.ReadAllText("Assets/Resources/" + file));
+		return JsonConvert.DeserializeObject<Linker.Container>(File.ReadAllText("Assets/Resources/" + file));
 	}
 }
