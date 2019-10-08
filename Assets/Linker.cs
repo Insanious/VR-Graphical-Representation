@@ -13,7 +13,8 @@ public class Linker : MonoBehaviour
 		public List<Container> children { get; set; }
 		public List<Container> siblings { get; set; }
 		public Container parent { get; set; }
-		public bool drawingLine;
+		public bool isInstantiated { get; set; }
+		public bool isDrawingLine { get; set; }
 		public int id { get; set; }
 		public int depth { get; set; }
 		public string name { get; set; }
@@ -89,7 +90,7 @@ public class Linker : MonoBehaviour
 
 		foreach (Linker.Container child in container.children)
 		{
-			if (child.drawingLine) // If any of the children are drawing lines, disable all drawing
+			if (child.isDrawingLine) // If any of the children are drawing lines, disable all drawing
 			{
 				drawing = true;
 				break;
@@ -114,10 +115,13 @@ public class Linker : MonoBehaviour
 
 			foreach (Linker.Container child in parent.children)
 			{
-				childrenQueue.Enqueue(child);
+				if (child.isInstantiated)
+				{
+					childrenQueue.Enqueue(child);
 
-				child.self.GetComponent<Linker>().container.line.GetComponent<LineRenderer>().positionCount = 0;
-				child.drawingLine = false;
+					child.self.GetComponent<Linker>().container.line.GetComponent<LineRenderer>().positionCount = 0;
+					child.isDrawingLine = false;
+				}
 			}
 		}
 	}
@@ -140,21 +144,24 @@ public class Linker : MonoBehaviour
 
 			foreach (Linker.Container child in parent.children)
 			{
-				childrenQueue.Enqueue(child);
+				if (child.isInstantiated)
+				{
+					childrenQueue.Enqueue(child);
 
-				childPos = child.self.transform.position;
-				childColor = child.color;
+					childPos = child.self.transform.position;
+					childColor = child.color;
 
-				LineRenderer lineRenderer = child.self.GetComponent<Linker>().container.line.GetComponent<LineRenderer>();
+					LineRenderer lineRenderer = child.self.GetComponent<Linker>().container.line.GetComponent<LineRenderer>();
 
-				lineRenderer.positionCount = 2;
-				lineRenderer.SetPosition(0, new Vector3(childPos.x, childPos.y, childPos.z));
-				lineRenderer.SetPosition(1, new Vector3(parentPos.x, parentPos.y, parentPos.z));
-				lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
-				lineRenderer.startColor = childColor;
-				lineRenderer.endColor = parentColor;
+					lineRenderer.positionCount = 2;
+					lineRenderer.SetPosition(0, new Vector3(childPos.x, childPos.y, childPos.z));
+					lineRenderer.SetPosition(1, new Vector3(parentPos.x, parentPos.y, parentPos.z));
+					lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+					lineRenderer.startColor = childColor;
+					lineRenderer.endColor = parentColor;
 
-				child.drawingLine = true;
+					child.isDrawingLine = true;
+				}
 			}
 		}
 	}

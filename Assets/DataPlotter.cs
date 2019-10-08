@@ -26,7 +26,7 @@ public class DataPlotter : MonoBehaviour
 		root = JSONParser.Read(file);
 
 		InitializeNodes();
-		RenderNodes(root, RenderType.CONE, RenderMode.LEVELS, depth);
+		RenderNodes(root.children[0], RenderType.CONE, RenderMode.LEVELS, depth);
 	}
 
 	public void InitializeNodes()
@@ -55,6 +55,8 @@ public class DataPlotter : MonoBehaviour
 				child.parent = parent;
 				child.depth = Linker.GetDepth(child);
 				child.id = id++;
+				child.isInstantiated = false;
+				child.isDrawingLine = false;
 
 				if (child.id > 0 && child.id < 4)
 				{
@@ -106,6 +108,7 @@ public class DataPlotter : MonoBehaviour
 		Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
 		Linker.Container child = node;
 		int level = 0;
+		bool depthReached = false;
 
 		levels.Add(new List<Linker.Container>());
 		levels[level++].Add(node);
@@ -120,15 +123,20 @@ public class DataPlotter : MonoBehaviour
 			foreach (Linker.Container grandchild in child.children) // Add the parent's children to the queue
 				childrenQueue.Enqueue(grandchild);
 
-			if (child.depth != level - 1)
+			if (child.depth - 1 != level)
 			{
-				level++;
-				if (level - 1 == depth)
-					break;
-
-				levels.Add(new List<Linker.Container>());
+				if (level == depth)
+					depthReached = true;
+				else
+				{
+					level++;
+					levels.Add(new List<Linker.Container>());
+				}
 			}
 			levels[level].Add(child);
+
+			if (depthReached)
+				break;
 		}
 
 		return levels;
@@ -141,6 +149,7 @@ public class DataPlotter : MonoBehaviour
 		Linker.Container parent = node;
 		Linker.Container child;
 		int level = 0;
+		bool depthReached = false;
 
 		siblings.Add(new List<Linker.Container>());
 		siblings[level++].Add(node); // Add node as the single object at the first level
@@ -158,15 +167,19 @@ public class DataPlotter : MonoBehaviour
 
 			if (child.parent.id != parent.id) // If there is a new grandparent, increment level
 			{
-				level++;
-				if (level - 1 == depth)
-					break;
-
-				parent = child.parent;
-				siblings.Add(new List<Linker.Container>());
+				if (level == depth)
+					depthReached = true;
+				else
+				{
+					level++;
+					parent = child.parent;
+					siblings.Add(new List<Linker.Container>());
+				}
 			}
-
 			siblings[level].Add(child);
+
+			if (depthReached)
+				break;
 		}
 
 		return siblings;
@@ -252,12 +265,15 @@ public class DataPlotter : MonoBehaviour
 		else
 			prefab = folderPrefab;
 
-		var obj = Instantiate(prefab, new Vector3(position.x, position.y, position.z), Quaternion.identity);
+		GameObject obj = Instantiate(prefab, new Vector3(position.x, position.y, position.z), Quaternion.identity);
 
-		obj.transform.localScale = size;
-		obj.GetComponent<Linker>().container = node;
-		obj.GetComponent<Linker>().container.self = obj;
-		obj.GetComponent<Linker>().container.line = Instantiate(linePrefab);
-		obj.GetComponent<Renderer>().material.color = obj.GetComponent<Linker>().container.color;
+		node.isInstantiated = true;
+		node.self = obj; // Set self to itself
+		node.line = Instantiate(linePrefab); // Set line to an instantiated line
+		obj.GetComponent<Linker>().container = node; // Set container
+
+		obj.transform.localScale = size; // Change size
+		obj.GetComponent<Renderer>().material.color = node.color; // Change color
+
 	}
 }
