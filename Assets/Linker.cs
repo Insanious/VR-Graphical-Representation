@@ -5,11 +5,11 @@ using UnityEngine;
 public class Linker : MonoBehaviour
 {
 	public Container container;
-	public GameObject line;
 
 	public class Container
 	{
 		public GameObject self;
+		public GameObject line;
 		public List<Container> children { get; set; }
 		public List<Container> siblings { get; set; }
 		public Container parent { get; set; }
@@ -89,7 +89,7 @@ public class Linker : MonoBehaviour
 
 		foreach (Linker.Container child in container.children)
 		{
-			if (child.drawingLine)
+			if (child.drawingLine) // If any of the children are drawing lines, disable all drawing
 			{
 				drawing = true;
 				break;
@@ -116,8 +116,8 @@ public class Linker : MonoBehaviour
 			{
 				childrenQueue.Enqueue(child);
 
+				child.self.GetComponent<Linker>().container.line.GetComponent<LineRenderer>().positionCount = 0;
 				child.drawingLine = false;
-				child.self.GetComponent<Linker>().line.GetComponent<LineRenderer>().positionCount = 0;
 			}
 		}
 	}
@@ -145,14 +145,16 @@ public class Linker : MonoBehaviour
 				childPos = child.self.transform.position;
 				childColor = child.color;
 
+				LineRenderer lineRenderer = child.self.GetComponent<Linker>().container.line.GetComponent<LineRenderer>();
+
+				lineRenderer.positionCount = 2;
+				lineRenderer.SetPosition(0, new Vector3(childPos.x, childPos.y, childPos.z));
+				lineRenderer.SetPosition(1, new Vector3(parentPos.x, parentPos.y, parentPos.z));
+				lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+				lineRenderer.startColor = childColor;
+				lineRenderer.endColor = parentColor;
+
 				child.drawingLine = true;
-				child.self.GetComponent<Linker>().line = Instantiate(child.self.GetComponent<Linker>().line);
-				child.self.GetComponent<Linker>().line.GetComponent<LineRenderer>().positionCount = 2;
-				child.self.GetComponent<Linker>().line.GetComponent<LineRenderer>().SetPosition(0, new Vector3(childPos.x, childPos.y, childPos.z));
-				child.self.GetComponent<Linker>().line.GetComponent<LineRenderer>().SetPosition(1, new Vector3(parentPos.x, parentPos.y, parentPos.z));
-				child.self.GetComponent<Linker>().line.GetComponent<LineRenderer>().material = new Material(Shader.Find("Sprites/Default"));
-				child.self.GetComponent<Linker>().line.GetComponent<LineRenderer>().startColor = childColor;
-				child.self.GetComponent<Linker>().line.GetComponent<LineRenderer>().endColor = parentColor;
 			}
 		}
 	}

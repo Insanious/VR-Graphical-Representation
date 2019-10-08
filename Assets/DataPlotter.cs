@@ -12,74 +12,27 @@ public class DataPlotter : MonoBehaviour
 	public GameObject folderPrefab;
 	public GameObject filePrefab;
 	public GameObject linePrefab;
+	public int depth;
+	public string file;
 
 	private List<List<Linker.Container>> nodes;
-	private List<List<Linker.Container>> siblings;
 	private Queue<Linker.Container> childrenQueue;
 	private Linker.Container root;
-	private Linker.Container parent;
-	private Linker.Container child;
-	private int maxDepth;
-	private int level;
-	public string file;
 
 	private void Start()
 	{
 		nodes = new List<List<Linker.Container>>();
-		childrenQueue = new Queue<Linker.Container>();
-		siblings = new List<List<Linker.Container>>();
-		maxDepth = level = 0;
 
 		root = JSONParser.Read(file);
 
 		InitializeNodes();
-		RenderNodes(RenderType.CONE, RenderMode.LEVELS);
-		DrawAllLines();
-	}
-
-	public void DrawAllLines()
-	{
-		childrenQueue.Enqueue(root);
-		while (childrenQueue.Count != 0)
-		{
-			parent = childrenQueue.Dequeue();
-			foreach (Linker.Container child in parent.children)
-			{
-				childrenQueue.Enqueue(child);
-				DrawLine(parent, child);
-			}
-		}
-
-	}
-
-	public void DrawLine(Linker.Container parent, Linker.Container child)
-	{
-		/*
-		Vector3 parentPos;
-		Color parentColor = new Color();
-		Vector3 childPos;
-		Color childColor = new Color();
-
-		parentPos = parent.self.transform.position;
-		parentColor = parent.color;
-		//parentColor.a = 0;
-
-		childPos = child.self.transform.position;
-		childColor = child.color;
-		//childColor.a = 0;
-
-		child.line = Instantiate(linePrefab);
-		child.line.GetComponent<LineRenderer>().SetPosition(0, new Vector3(childPos.x, childPos.y, childPos.z));
-		child.line.GetComponent<LineRenderer>().SetPosition(1, new Vector3(parentPos.x, parentPos.y, parentPos.z));
-		child.line.GetComponent<LineRenderer>().material = new Material(Shader.Find("Sprites/Default"));
-		child.line.GetComponent<LineRenderer>().startColor = childColor;
-		child.line.GetComponent<LineRenderer>().endColor = parentColor;
-		*/
+		RenderNodes(root, RenderType.CONE, RenderMode.LEVELS, depth);
 	}
 
 	public void InitializeNodes()
 	{
-		parent = null;
+		Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
+		Linker.Container parent = null;
 		int id = 0;
 		float colorTint = 0.2f;
 
@@ -128,15 +81,15 @@ public class DataPlotter : MonoBehaviour
 		}
 	}
 
-	private List<List<Linker.Container>> GetNodes(RenderMode mode)
+	private List<List<Linker.Container>> GetNodes(Linker.Container node, RenderMode mode, int depth)
 	{
 		switch (mode)
 		{
 			case RenderMode.SIBLINGS:
-				nodes = GetAllSiblings();
+				nodes = GetAllSiblings(node, depth);
 				break;
 			case RenderMode.LEVELS:
-				nodes = GetAllLevels();
+				nodes = GetAllLevels(node, depth);
 				break;
 			default:
 				Debug.Log("Wrong mode.");
@@ -145,42 +98,56 @@ public class DataPlotter : MonoBehaviour
 		return nodes;
 	}
 
-	private List<List<Linker.Container>> GetAllLevels()
+	private List<List<Linker.Container>> GetAllLevels(Linker.Container node, int depth)
 	{
-		child = root;
-		level = 0;
 		List<List<Linker.Container>> levels = new List<List<Linker.Container>>();
+		if (depth == 0) // When depth is 0, the tree is empty
+			return levels;
+		Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
+		Linker.Container child = node;
+		int level = 0;
 
 		levels.Add(new List<Linker.Container>());
+		levels[level++].Add(node);
+		levels.Add(new List<Linker.Container>());
 
-		childrenQueue.Enqueue(root);
+		foreach (Linker.Container grandchild in node.children) // Add the parent's children to the queue
+			childrenQueue.Enqueue(grandchild);
+
 		while (childrenQueue.Count != 0)
 		{
 			child = childrenQueue.Dequeue();
 			foreach (Linker.Container grandchild in child.children) // Add the parent's children to the queue
 				childrenQueue.Enqueue(grandchild);
 
-			if (child.depth != level)
+			if (child.depth != level - 1)
 			{
-				levels.Add(new List<Linker.Container>());
 				level++;
+				if (level - 1 == depth)
+					break;
+
+				levels.Add(new List<Linker.Container>());
 			}
 			levels[level].Add(child);
 		}
+
 		return levels;
 	}
 
-	private List<List<Linker.Container>> GetAllSiblings()
+	private List<List<Linker.Container>> GetAllSiblings(Linker.Container node, int depth)
 	{
-		parent = child = root;
-		level = 0;
+		List<List<Linker.Container>> siblings = new List<List<Linker.Container>>();
+		Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
+		Linker.Container parent = node;
+		Linker.Container child;
+		int level = 0;
 
 		siblings.Add(new List<Linker.Container>());
-		siblings[level++].Add(root); // Add root as the single object at the first level
+		siblings[level++].Add(node); // Add node as the single object at the first level
 		siblings.Add(new List<Linker.Container>());
 
 		// Cover edge case so we don't need to check against root's parent, since it's parent is null
-		foreach (Linker.Container grandchild in root.children) // Add root's children to the queue
+		foreach (Linker.Container grandchild in node.children) // Add root's children to the queue
 			childrenQueue.Enqueue(grandchild);
 
 		while (childrenQueue.Count != 0)
@@ -191,8 +158,11 @@ public class DataPlotter : MonoBehaviour
 
 			if (child.parent.id != parent.id) // If there is a new grandparent, increment level
 			{
-				parent = child.parent;
 				level++;
+				if (level - 1 == depth)
+					break;
+
+				parent = child.parent;
 				siblings.Add(new List<Linker.Container>());
 			}
 
@@ -202,7 +172,7 @@ public class DataPlotter : MonoBehaviour
 		return siblings;
 	}
 
-	private void ConeRendering(RenderMode mode)
+	private void ConeRendering(Linker.Container node, RenderMode mode, int depth)
 	{
 		Vector3 size;
 		Vector3 position;
@@ -211,8 +181,10 @@ public class DataPlotter : MonoBehaviour
 		float radius = .1f;
 		float deltaTheta = 0f;
 		float theta = 0f;
+		float nodeSeparation = 1.25f; // Separate nodes with a gap of one whole node inbetween
+		float nodeSize = 0.25f;
 
-		nodes = GetNodes(mode);
+		nodes = GetNodes(node, mode, depth);
 
 		nrOfLevels = nodes.Count;
 
@@ -221,7 +193,7 @@ public class DataPlotter : MonoBehaviour
 			nrOfNodes = nodes[i].Count;
 
 			deltaTheta = (2f * Mathf.PI) / nrOfNodes;
-			radius = nrOfNodes / (Mathf.PI / 0.125f);
+			radius = nrOfNodes / (Mathf.PI / (nodeSize / nodeSeparation));
 
 			for (int j = 0; j < nrOfNodes; j++) // Instantiate all nodes at level = i
 			{
@@ -233,7 +205,7 @@ public class DataPlotter : MonoBehaviour
 		}
 	}
 
-	private void PlanarRendering(RenderMode mode)
+	private void PlanarRendering(Linker.Container node, RenderMode mode, int depth)
 	{
 		Vector3	size;
 		Vector3 position;
@@ -241,7 +213,7 @@ public class DataPlotter : MonoBehaviour
 		float gridSize = 0;
 		int nrOfNodes = 0;
 
-		nodes = GetNodes(mode);
+		nodes = GetNodes(node, mode, depth);
 
 		nrOfLevels = nodes.Count;
 		for (int i = 0; i < nrOfLevels; i++) // Create all folderPrefabs from the 2d list of nodes
@@ -258,16 +230,16 @@ public class DataPlotter : MonoBehaviour
 		}
 	}
 
-	private void RenderNodes(RenderType type, RenderMode mode)
+	private void RenderNodes(Linker.Container node, RenderType type, RenderMode mode, int depth)
 	{
 		switch (type)
 		{
 			case RenderType.PLANAR:
-				PlanarRendering(mode);
+				PlanarRendering(node, mode, depth);
 				break;
 
 			case RenderType.CONE:
-				ConeRendering(mode);
+				ConeRendering(node, mode, depth);
 				break;
 		}
 	}
@@ -275,17 +247,17 @@ public class DataPlotter : MonoBehaviour
 	private void CreateNode(Linker.Container node, Vector3 position, Vector3 size)
 	{
 		GameObject prefab;
-		if (node.size == 0)
+		if (node.children.Count == 0)
 			prefab = filePrefab;
 		else
 			prefab = folderPrefab;
 
 		var obj = Instantiate(prefab, new Vector3(position.x, position.y, position.z), Quaternion.identity);
-		obj.transform.localScale = size;
 
+		obj.transform.localScale = size;
 		obj.GetComponent<Linker>().container = node;
 		obj.GetComponent<Linker>().container.self = obj;
-
+		obj.GetComponent<Linker>().container.line = Instantiate(linePrefab);
 		obj.GetComponent<Renderer>().material.color = obj.GetComponent<Linker>().container.color;
 	}
 }
