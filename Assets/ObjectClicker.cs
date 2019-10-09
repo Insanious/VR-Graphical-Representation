@@ -4,47 +4,43 @@ using UnityEngine;
 
 public class ObjectClicker : MonoBehaviour
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-
-    }
+	public GameObject obj;
 
     // Update is called once per frame
     void Update()
     {
 		if (Input.GetMouseButtonDown(0))
 		{
-			RaycastHit hit;
-			Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-
-			if (Physics.Raycast(ray, out hit, 100.0f))
+			obj = RayCastToGameObject();
+			if (obj != null && (obj.name == "DataBall(Clone)" || obj.name == "Cube(Clone)"))
 			{
-				GameObject obj = hit.transform.gameObject;
-				//Debug.Log(obj.name);
-				if (obj.name == "DataBall(Clone)" || obj.name == "Cube(Clone)")
+				obj.GetComponent<Linker>().Print();
+				obj.GetComponent<Linker>().ToggleSubtreeLines();
+			}
+		}
+
+		else if (Input.GetMouseButtonDown(1))
+		{
+			obj = RayCastToGameObject();
+			if (obj != null && (obj.name == "DataBall(Clone)" || obj.name == "Cube(Clone)"))
+			{
+				if (obj.GetComponent<Linker>().container.children.Count != 0)
 				{
-					obj.GetComponent<Linker>().Print();
-					obj.GetComponent<Linker>().ToggleSubtreeLines();
-
-					// if (obj.GetComponent<Linker>().container.id != 0) // If not root
-					// {
-					// 	var parent = obj.GetComponent<Linker>().container.parent.self;
-					//
-					// 	foreach (Linker.Container child in parent.GetComponent<Linker>().container.children)
-					// 		child.self.GetComponent<Renderer>().material.color = Color.blue;
-					// }
-
-					/*
-					Debug.Log(obj.GetComponent<Container>().siblings.Count);
-
-					Debug.Log("nr of siblings = " + obj.GetComponent<Container>().siblings.Count);
-					foreach (Container child in obj.GetComponent<Container>().parent.self.GetComponent<Container>().children)
-						child.self.GetComponent<Renderer>().material.color = Color.blue;
-					obj.GetComponent<Container>().parent.self.GetComponent<Renderer>().material.color = Color.black;
-					*/
+					int currentDepth = obj.GetComponent<Linker>().container.depth;
+					obj.GetComponent<Linker>().container.ToggleSubtree(Linker.RenderMode.LEVELS);
 				}
 			}
 		}
     }
+
+	GameObject RayCastToGameObject()
+	{
+		RaycastHit hit;
+		Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+		if (Physics.Raycast(ray, out hit, 100.0f))
+			return hit.transform.gameObject;
+
+		return null;
+	}
 }
