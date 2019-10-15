@@ -6,7 +6,6 @@ public class Linker : MonoBehaviour
 {
 	public enum RenderMode { SIBLINGS, LEVELS };
 
-
 	public Container container;
 
 	public class Container
@@ -30,6 +29,77 @@ public class Linker : MonoBehaviour
 		public float size { get; set; }
 		public float weight { get; set; }
 		public Color color { get; set; }
+
+		private Linker.Container CopyNode()
+		{
+			Linker.Container copy = new Linker.Container();
+			copy.color = new Color();
+			copy.children = new List<Container>();
+			copy.siblings = new List<Container>();
+			copy.parent = null;
+			copy.self = null;
+
+			copy.folderPrefab = this.folderPrefab;
+			copy.filePrefab = this.filePrefab;
+			copy.linePrefab = this.linePrefab;
+			copy.isInstantiated = false;
+			copy.isDrawingLine = false;
+			copy.id = this.id;
+			copy.subtreeDepth = this.subtreeDepth;
+			copy.name = this.name;
+			copy.size = this.size;
+			copy.weight = this.weight;
+			copy.color = this.color;
+
+			return copy;
+		}
+
+		public void CopySubtree(Vector3 offset)
+		{
+			Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
+			Queue<Linker.Container> newChildrenQueue = new Queue<Linker.Container>();
+			Linker.Container parent;
+			Linker.Container newParent;
+			Linker.Container newChild;
+
+			Linker.Container newRoot = this.CopyNode();
+			if (newRoot.subtreeDepth < -1) // Copied a node != root when full tree was displayed
+				newRoot.subtreeDepth = -1;
+
+			childrenQueue.Enqueue(this);
+			newChildrenQueue.Enqueue(newRoot);
+			while (childrenQueue.Count != 0)
+			{
+				parent = childrenQueue.Dequeue();
+				newParent = newChildrenQueue.Dequeue();
+				foreach(Linker.Container child in parent.children)
+				{
+					newChild = child.CopyNode();
+					newChild.parent = newParent;
+					newChild.depth = newChild.GetDepth();
+					Debug.Log(newChild.depth);
+					newChildrenQueue.Enqueue(newChild);
+
+					newParent.children.Add(newChild);
+					childrenQueue.Enqueue(child);
+					//foreach (Linker.Container in parent.children) ADD SIBLINGS AT THE END
+				}
+
+				foreach(Linker.Container child in newParent.children) // Add siblings
+					foreach (Linker.Container sibling in newParent.children)
+						if (child.id != sibling.id)
+							child.siblings.Add(sibling);
+			}
+
+			Vector3 position = self.transform.position;
+			Vector3 size = self.transform.localScale;
+
+			Vector3 newPosition = new Vector3(position.x + offset.x, position.y + offset.y, position.z + offset.z);
+			Vector3 newSize = new Vector3(size.x, size.y, size.z);
+
+			InstantiateNode(newRoot, newPosition, newSize);
+			newRoot.InstantiateSubtree(RenderMode.LEVELS, newRoot.subtreeDepth);
+		}
 
 		private List<List<Linker.Container>> GetNodes(RenderMode mode, int depth)
 		{
@@ -113,8 +183,13 @@ public class Linker : MonoBehaviour
 			if (depth == 0)
 				return levels;
 
-			int newSubtreeDepth = this.subtreeDepth + depth;
-			this.subtreeDepth = newSubtreeDepth;
+			int newSubtreeDepth = -1;
+
+			if (this.subtreeDepth > -1)
+			{
+				newSubtreeDepth = this.subtreeDepth + depth;
+				this.subtreeDepth = newSubtreeDepth;
+			}
 
 			int depthOffset = this.depth + 1;
 			Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
@@ -225,6 +300,7 @@ public class Linker : MonoBehaviour
 			List<List<Linker.Container>> nodes;
 			Vector3 size;
 			Vector3 position;
+			Vector3 rootPosition = self.transform.position;
 			int nrOfLevels = 0;
 			int nrOfNodes = 0;
 			int childDepth = 0;
@@ -241,7 +317,8 @@ public class Linker : MonoBehaviour
 
 			for (int i = 0; i < nrOfLevels; i++) // Create all folderPrefabs from the 2d list of nodes
 			{
-				childDepth = nodes[i][0].depth;
+				if (nodes[i].Count != 0)
+					childDepth = nodes[i][0].depth;
 				nrOfNodes = nodes[i].Count;
 
 				deltaTheta = (2f * Mathf.PI) / nrOfNodes;
@@ -251,7 +328,7 @@ public class Linker : MonoBehaviour
 				{
 
 					size = new Vector3(.25f, .25f, .25f);
-					position = new Vector3(radius * Mathf.Cos(theta), (heightMultiplier * childDepth), radius * Mathf.Sin(theta));
+					position = new Vector3(rootPosition.x + radius * Mathf.Cos(theta), rootPosition.y + (heightMultiplier * childDepth), rootPosition.z + radius * Mathf.Sin(theta));
 
 					nodes[i][j].folderPrefab = this.folderPrefab;
 					nodes[i][j].filePrefab = this.filePrefab;
@@ -286,6 +363,9 @@ public class Linker : MonoBehaviour
 
 			foreach (Linker.Container child in children)
 			{
+				if (child.self == null) // Null check
+					return;
+
 				if (!child.self.activeSelf) // If tree is inactive, disable lines
 				{
 					DisableSubtreeLines();
@@ -385,12 +465,10 @@ public class Linker : MonoBehaviour
 
 		private int RecursiveDepth(Linker.Container node, int depth)
 		{
-			depth++;
-
-			if (node.parent.name == "root")
+			if (node.parent == null)
 				return depth;
 
-			return RecursiveDepth(node.parent, depth);
+			return RecursiveDepth(node.parent, ++depth);
 		}
 
 		private float RecursiveSize(Linker.Container node, float size)
@@ -408,7 +486,7 @@ public class Linker : MonoBehaviour
 
 		public int GetDepth()
 		{
-			return RecursiveDepth(this, 0); // Folder
+			return RecursiveDepth(this, 0);
 		}
 
 		public float GetSize()
@@ -429,7 +507,7 @@ public class Linker : MonoBehaviour
 
 			output += ". Name = " + name;
 
-			if (id == 0) // root
+			if (parent == null) // root
 				output += ". Parent = null";
 			else
 				output += ". Parent = " + parent.name;

@@ -14,9 +14,9 @@ public class VRInput : MonoBehaviour
 
 	void Start()
 	{
-		Debug.Log(handType);
-		Debug.Log(teleportAction);
-		Debug.Log(grabAction);
+		//Debug.Log(handType);
+		//Debug.Log(teleportAction);
+		//Debug.Log(grabAction);
 	}
 
     // Update is called once per frame

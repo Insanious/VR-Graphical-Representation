@@ -16,6 +16,8 @@ public class ObjectClicker : MonoBehaviour
 			{
 				obj.GetComponent<Linker>().container.Print();
 				obj.GetComponent<Linker>().container.ToggleSubtreeLines();
+
+				//obj.GetComponent<Linker>().container.CopySubtree(new Vector3(10f, 0f, 10f));
 			}
 		}
 
@@ -26,10 +28,17 @@ public class ObjectClicker : MonoBehaviour
 			{
 				if (obj.GetComponent<Linker>().container.children.Count != 0)
 				{
-					int currentDepth = obj.GetComponent<Linker>().container.depth;
-					obj.GetComponent<Linker>().container.ToggleSubtree(Linker.RenderMode.LEVELS);
+					//int currentDepth = obj.GetComponent<Linker>().container.depth;
+					obj.GetComponent<Linker>().container.InstantiateSubtree(Linker.RenderMode.LEVELS, 1);
 				}
 			}
+		}
+
+		else if (Input.GetMouseButtonDown(2))
+		{
+			obj = RayCastToGameObject();
+			if (obj != null && (obj.name == "DataBall(Clone)" || obj.name == "Cube(Clone)"))
+				obj.GetComponent<Linker>().container.CopySubtree(new Vector3(10f, 0f, 10f));
 		}
 
 		else if (Input.mouseScrollDelta.y != 0)
