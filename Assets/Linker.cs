@@ -366,6 +366,22 @@ public class Linker : MonoBehaviour
 				}
 			}
 		}
+
+		private void Move(Vector3 increment)
+		{
+			self.transform += increment;
+		}
+
+		public void MoveSubtree(Vector3 increment)
+		{
+			Move(increment);
+
+			if (children.count == 0) // Basecase
+				return;
+
+			foreach (Linker.Container child in children) // Move all nodes recursively
+				MoveSubtree(increment);
+		}
 	}
 
 	private static int RecursiveDepth(Linker.Container node, int depth)
