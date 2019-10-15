@@ -382,63 +382,67 @@ public class Linker : MonoBehaviour
 			foreach (Linker.Container child in children) // Move all nodes recursively
 				child.MoveSubtree(increment);
 		}
-	}
 
-	private static int RecursiveDepth(Linker.Container node, int depth)
-	{
-		depth++;
-		if (node.parent.name == "root")
-			return depth;
-		return RecursiveDepth(node.parent, depth);
-	}
-
-	private static float RecursiveSize(Linker.Container node, float size)
-	{
-		foreach (Linker.Container child in node.children)
+		private int RecursiveDepth(Linker.Container node, int depth)
 		{
-			if (child.size != 0) // leaf node, no children
-				size += child.size;
-			else
-				size = RecursiveSize(child, size);
+			depth++;
+
+			if (node.parent.name == "root")
+				return depth;
+
+			return RecursiveDepth(node.parent, depth);
 		}
-		return size;
-	}
 
-	public static int GetDepth(Linker.Container node)
-	{
-		return RecursiveDepth(node, 0); // Folder
-	}
+		private float RecursiveSize(Linker.Container node, float size)
+		{
+			foreach (Linker.Container child in node.children)
+			{
+				if (child.size != 0) // leaf node, no children
+					size += child.size;
+				else
+					size = RecursiveSize(child, size);
+			}
 
-	public static float GetSize(Linker.Container node)
-	{
-		if (node.size > 0) // File
-			return node.size;
-		return RecursiveSize(node, 0);
-	}
+			return size;
+		}
 
-	public void Print()
-	{
-		string output = System.String.Empty;
-		if (container.size == 0) // a folder has no size, only files has
-			output += "Type = folder";
-		else
-			output += "Type = file";
+		public int GetDepth()
+		{
+			return RecursiveDepth(this, 0); // Folder
+		}
 
-		output += ". Name = " + container.name;
+		public float GetSize()
+		{
+			if (size > 0) // File
+				return size;
 
-		if (container.id == 0) // root
-			output += ". Parent = null";
-		else
-			output += ". Parent = " + container.parent.name;
-		output +=
-		". Id = " + container.id +
-		". Depth = " + container.depth +
-		". Subtree depth = " + container.subtreeDepth +
-		". Size = " + container.size +
-		". Weight = " + container.weight +
-		". Number of children = " + container.children.Count +
-		". Number of siblings = " + container.siblings.Count;
+			return RecursiveSize(this, 0);
+		}
 
-		Debug.Log(output);
+		public void Print()
+		{
+			string output = System.String.Empty;
+			if (size == 0) // a folder has no size, only files has
+				output += "Type = folder";
+			else
+				output += "Type = file";
+
+			output += ". Name = " + name;
+
+			if (id == 0) // root
+				output += ". Parent = null";
+			else
+				output += ". Parent = " + parent.name;
+			output +=
+			". Id = " + id +
+			". Depth = " + depth +
+			". Subtree depth = " + subtreeDepth +
+			". Size = " + size +
+			". Weight = " + weight +
+			". Number of children = " + children.Count +
+			". Number of siblings = " + siblings.Count;
+
+			Debug.Log(output);
+		}
 	}
 }

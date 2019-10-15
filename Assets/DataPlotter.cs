@@ -79,7 +79,7 @@ public class DataPlotter : MonoBehaviour
 						child.siblings.Add(sibling);
 
 				child.parent = parent;
-				child.depth = Linker.GetDepth(child);
+				child.depth = child.GetDepth();
 				child.id = id++;
 				child.isInstantiated = false;
 				child.isDrawingLine = false;

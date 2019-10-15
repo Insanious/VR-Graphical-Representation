@@ -14,7 +14,7 @@ public class ObjectClicker : MonoBehaviour
 			obj = RayCastToGameObject();
 			if (obj != null && (obj.name == "DataBall(Clone)" || obj.name == "Cube(Clone)"))
 			{
-				obj.GetComponent<Linker>().Print();
+				obj.GetComponent<Linker>().container.Print();
 				obj.GetComponent<Linker>().container.ToggleSubtreeLines();
 			}
 		}
