@@ -25,6 +25,6 @@ MonoBehaviour:
   legacyMixedRealityCamera: 1
   mixedRealityCameraPose:
     actionPath: /actions/mixedreality/in/ExternalCamera
-    needsReinit: 0
+    needsReinit: 1
   mixedRealityCameraInputSource: 11
   mixedRealityActionSetAutoEnable: 1

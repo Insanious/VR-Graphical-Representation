@@ -22,12 +22,6 @@ public class VRInput : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-		//Debug.Log(SteamVR_Action.active);
-		if (SteamVR_Input.default.inActions.GrabPinch.GetStateUp(SteamVR_Input_Sources.Any))
-		{
-			Debug.Log("something moved");
-		}
-        //float triggerValue = squeezeAction.GetAxis(SteamVR_Input_Sources.Any);
 		if (GetTeleportDown())
 		{
 		    Debug.Log("Teleport " + handType);
