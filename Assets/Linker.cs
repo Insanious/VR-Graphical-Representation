@@ -164,7 +164,10 @@ public class Linker : MonoBehaviour
 			if (child.isInstantiated) // The tree has been instantiated
 			{
 				if (child.self.activeSelf) // GameObject is active
+				{
 					DisableSubtree();
+					ToggleSubtreeLines();
+				}
 				else
 					EnableSubtree();
 			}
@@ -273,6 +276,96 @@ public class Linker : MonoBehaviour
 			node.self.transform.localScale = size; // Change size
 			node.self.GetComponent<Renderer>().material.color = node.color; // Change color
 		}
+
+		public void ToggleSubtreeLines()
+		{
+			if (children.Count == 0)
+				return;
+
+			bool drawing = false;
+
+			foreach (Linker.Container child in children)
+			{
+				if (!child.self.activeSelf) // If tree is inactive, disable lines
+				{
+					DisableSubtreeLines();
+					return;
+				}
+
+				if (child.isDrawingLine) // If any of the children are drawing lines, disable all drawing
+				{
+					drawing = true;
+					break;
+				}
+			}
+
+			if (drawing)
+				DisableSubtreeLines();
+			else
+				EnableSubtreeLines();
+		}
+
+		private void DisableSubtreeLines()
+		{
+			Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
+			Linker.Container parent;
+
+			childrenQueue.Enqueue(this);
+			while(childrenQueue.Count != 0)
+			{
+				parent = childrenQueue.Dequeue();
+
+				foreach (Linker.Container child in parent.children)
+				{
+					if (child.isInstantiated)
+					{
+						childrenQueue.Enqueue(child);
+
+						child.line.GetComponent<LineRenderer>().positionCount = 0;
+						child.isDrawingLine = false;
+					}
+				}
+			}
+		}
+
+		private void EnableSubtreeLines()
+		{
+			Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
+			Linker.Container parent;
+			Vector3 parentPos;
+			Color parentColor;
+			Vector3 childPos;
+			Color childColor;
+
+			childrenQueue.Enqueue(this);
+			while(childrenQueue.Count != 0)
+			{
+				parent = childrenQueue.Dequeue();
+				parentPos = parent.self.transform.position;
+				parentColor = parent.color;
+
+				foreach (Linker.Container child in parent.children)
+				{
+					if (child.isInstantiated)
+					{
+						childrenQueue.Enqueue(child);
+
+						childPos = child.self.transform.position;
+						childColor = child.color;
+
+						LineRenderer lineRenderer = child.self.GetComponent<Linker>().container.line.GetComponent<LineRenderer>();
+						lineRenderer.positionCount = 2;
+						lineRenderer.SetPosition(0, new Vector3(childPos.x, childPos.y, childPos.z));
+						lineRenderer.SetPosition(1, new Vector3(parentPos.x, parentPos.y, parentPos.z));
+						lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+						lineRenderer.startColor = childColor;
+						lineRenderer.endColor = parentColor;
+
+						child.isDrawingLine = true;
+					}
+				}
+			}
+		}
 	}
 
 	private static int RecursiveDepth(Linker.Container node, int depth)
@@ -332,90 +425,4 @@ public class Linker : MonoBehaviour
 
 		Debug.Log(output);
 	}
-
-	public void ToggleSubtreeLines()
-	{
-		if (container.children.Count == 0)
-			return;
-
-		bool drawing = false;
-
-		foreach (Linker.Container child in container.children)
-		{
-			if (child.isDrawingLine) // If any of the children are drawing lines, disable all drawing
-			{
-				drawing = true;
-				break;
-			}
-		}
-
-		if (drawing)
-			DisableSubtreeLines();
-		else
-			EnableSubtreeLines();
-	}
-
-	private void DisableSubtreeLines()
-	{
-		Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
-		Linker.Container parent;
-
-		childrenQueue.Enqueue(container);
-		while(childrenQueue.Count != 0)
-		{
-			parent = childrenQueue.Dequeue();
-
-			foreach (Linker.Container child in parent.children)
-			{
-				if (child.isInstantiated)
-				{
-					childrenQueue.Enqueue(child);
-
-					child.line.GetComponent<LineRenderer>().positionCount = 0;
-					child.isDrawingLine = false;
-				}
-			}
-		}
-	}
-
-	private void EnableSubtreeLines()
-	{
-		Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
-		Linker.Container parent;
-		Vector3 parentPos;
-		Color parentColor;
-		Vector3 childPos;
-		Color childColor;
-
-		childrenQueue.Enqueue(container);
-		while(childrenQueue.Count != 0)
-		{
-			parent = childrenQueue.Dequeue();
-			parentPos = parent.self.transform.position;
-			parentColor = parent.color;
-
-			foreach (Linker.Container child in parent.children)
-			{
-				if (child.isInstantiated)
-				{
-					childrenQueue.Enqueue(child);
-
-					childPos = child.self.transform.position;
-					childColor = child.color;
-
-					LineRenderer lineRenderer = child.self.GetComponent<Linker>().container.line.GetComponent<LineRenderer>();
-					lineRenderer.positionCount = 2;
-					lineRenderer.SetPosition(0, new Vector3(childPos.x, childPos.y, childPos.z));
-					lineRenderer.SetPosition(1, new Vector3(parentPos.x, parentPos.y, parentPos.z));
-					lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
-					lineRenderer.startColor = childColor;
-					lineRenderer.endColor = parentColor;
-
-					child.isDrawingLine = true;
-				}
-			}
-		}
-	}
-
-
 }

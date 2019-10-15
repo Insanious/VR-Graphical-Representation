@@ -15,7 +15,7 @@ public class ObjectClicker : MonoBehaviour
 			if (obj != null && (obj.name == "DataBall(Clone)" || obj.name == "Cube(Clone)"))
 			{
 				obj.GetComponent<Linker>().Print();
-				obj.GetComponent<Linker>().ToggleSubtreeLines();
+				obj.GetComponent<Linker>().container.ToggleSubtreeLines();
 			}
 		}
 
@@ -31,6 +31,18 @@ public class ObjectClicker : MonoBehaviour
 				}
 			}
 		}
+
+		else if (Input.mouseScrollDelta.y != 0)
+		{
+			Debug.Log("delta = " + Input.mouseScrollDelta.y);
+			obj = RayCastToGameObject();
+			if (obj != null && (obj.name == "DataBall(Clone)" || obj.name == "Cube(Clone)"))
+			{
+				Debug.Log("delta = " + Input.mouseScrollDelta.y);
+			}
+		}
+
+		//if (Input.GetAxis("Mouse ScrollWheel") > 0f )
     }
 
 	GameObject RayCastToGameObject()
