@@ -77,7 +77,6 @@ public class Linker : MonoBehaviour
 					newChild = child.CopyNode();
 					newChild.parent = newParent;
 					newChild.depth = newChild.GetDepth();
-					Debug.Log(newChild.depth);
 					newChildrenQueue.Enqueue(newChild);
 
 					newParent.children.Add(newChild);
@@ -167,11 +166,12 @@ public class Linker : MonoBehaviour
 		private List<List<Linker.Container>> GetNextLevel()
 		{
 			this.subtreeDepth++;
+			Debug.Log(this.subtreeDepth);
 			List<List<Linker.Container>> levels = new List<List<Linker.Container>>();
 			levels.Add(new List<Linker.Container>());
 			foreach (Linker.Container child in this.children)
 			{
-				child.subtreeDepth++;
+				child.subtreeDepth = this.subtreeDepth;
 				levels[0].Add(child);
 			}
 			return levels;
@@ -297,10 +297,11 @@ public class Linker : MonoBehaviour
 
 		public void InstantiateSubtree(RenderMode mode, int depth) // Circular rendering
 		{
+			Debug.Log("InstantiateSubtree with " + depth);
 			List<List<Linker.Container>> nodes;
 			Vector3 size;
 			Vector3 position;
-			Vector3 rootPosition = self.transform.position;
+			Vector3 parentPosition = self.transform.position;
 			int nrOfLevels = 0;
 			int nrOfNodes = 0;
 			int childDepth = 0;
@@ -318,7 +319,12 @@ public class Linker : MonoBehaviour
 			for (int i = 0; i < nrOfLevels; i++) // Create all folderPrefabs from the 2d list of nodes
 			{
 				if (nodes[i].Count != 0)
+				{
 					childDepth = nodes[i][0].depth;
+
+					if (nodes[i][0].parent != null)
+						parentPosition = nodes[i][0].parent.self.transform.position;
+				}
 				nrOfNodes = nodes[i].Count;
 
 				deltaTheta = (2f * Mathf.PI) / nrOfNodes;
@@ -328,7 +334,7 @@ public class Linker : MonoBehaviour
 				{
 
 					size = new Vector3(.25f, .25f, .25f);
-					position = new Vector3(rootPosition.x + radius * Mathf.Cos(theta), rootPosition.y + (heightMultiplier * childDepth), rootPosition.z + radius * Mathf.Sin(theta));
+					position = new Vector3(parentPosition.x + radius * Mathf.Cos(theta), parentPosition.y + heightMultiplier, parentPosition.z + radius * Mathf.Sin(theta));
 
 					nodes[i][j].folderPrefab = this.folderPrefab;
 					nodes[i][j].filePrefab = this.filePrefab;

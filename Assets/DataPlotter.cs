@@ -28,7 +28,6 @@ public class DataPlotter : MonoBehaviour
 		InitializeNodes();
 		InstantiateRoot(root, new Vector3(0, 0, 0), new Vector3(0.25f, 0.25f, 0.25f));
 		root.InstantiateSubtree(Linker.RenderMode.LEVELS, depth);
-		root.CopySubtree(new Vector3(0, 0, 0));
 	}
 
 	public void InstantiateRoot(Linker.Container root, Vector3 startPosition, Vector3 size)
