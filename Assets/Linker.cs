@@ -171,17 +171,55 @@ public class Linker : MonoBehaviour
 			InstantiateSubtree(mode, 1);
 		}
 
+		public void DecrementSubtree(RenderMode mode)
+		{
+			if (subtreeDepth == 0)
+				return;
+			DestantiateSubtree(mode, 1);
+		}
+
+		public void DestantiateSubtree(RenderMode mode, int depth)
+		{
+			List<Linker.Container> levels = GetLastLevel();
+
+			Debug.Log("Count = " + levels.Count);
+			foreach (Linker.Container leaf in levels)
+				leaf.self.SetActive(false);
+		}
+
+		private List<Linker.Container> GetLastLevel()
+		{
+			Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
+			List<Linker.Container> levels = new List<Linker.Container>();
+			Linker.Container parent;
+
+			childrenQueue.Enqueue(this);
+			while (childrenQueue.Count != 0)
+			{
+				parent = childrenQueue.Dequeue();
+				if (parent.subtreeDepth == 0) // Reached the 'leaf' nodes
+					levels.Add(parent);
+				else
+					foreach (Linker.Container child in parent.children)
+						childrenQueue.Enqueue(child);
+
+				parent.subtreeDepth--;
+			}
+
+			return levels;
+		}
+
 		private List<List<Linker.Container>> GetNextLevel()
 		{
 			Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
 			Queue<Linker.Container> leafQueue = new Queue<Linker.Container>();
+			List<List<Linker.Container>> levels = new List<List<Linker.Container>>();
 			Linker.Container parent;
 			Linker.Container newNode;
-			List<List<Linker.Container>> levels = new List<List<Linker.Container>>();
+
 			levels.Add(new List<Linker.Container>());
 
 			childrenQueue.Enqueue(this);
-
 			while (childrenQueue.Count != 0)
 			{
 				parent = childrenQueue.Dequeue();
