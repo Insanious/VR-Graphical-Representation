@@ -25,6 +25,7 @@ public class Linker : MonoBehaviour
 		public int id { get; set; }
 		public int depth { get; set; }
 		public int subtreeDepth { get; set; }
+		public int maxDepth { get; set; }
 		public string name { get; set; }
 		public float size { get; set; }
 		public float weight { get; set; }
@@ -45,7 +46,7 @@ public class Linker : MonoBehaviour
 			copy.isInstantiated = false;
 			copy.isDrawingLine = false;
 			copy.id = this.id;
-			copy.subtreeDepth = 0;
+			copy.subtreeDepth = -1;
 			copy.name = this.name;
 			copy.size = this.size;
 			copy.weight = this.weight;
@@ -65,6 +66,7 @@ public class Linker : MonoBehaviour
 			Linker.Container newRoot = this.CopyNode();
 			if (newRoot.subtreeDepth < -1) // Copied a node != root when full tree was displayed
 				newRoot.subtreeDepth = -1;
+			newRoot.depth = newRoot.GetDepth();
 
 			childrenQueue.Enqueue(this);
 			newChildrenQueue.Enqueue(newRoot);
@@ -88,6 +90,7 @@ public class Linker : MonoBehaviour
 						if (child.id != sibling.id)
 							child.siblings.Add(sibling);
 			}
+			SetMaxDepth(newRoot, GetMaxDepth(newRoot)); // Calculate max depth and set all nodes max depth to it in the new tree starting from the new root
 
 			Vector3 position = self.transform.position;
 			Vector3 size = self.transform.localScale;
@@ -96,7 +99,6 @@ public class Linker : MonoBehaviour
 			Vector3 newSize = new Vector3(size.x, size.y, size.z);
 
 			InstantiateNode(newRoot, newPosition, newSize);
-			newRoot.InstantiateSubtree(RenderMode.LEVELS, newRoot.subtreeDepth);
 		}
 
 		private List<List<Linker.Container>> GetNodes(RenderMode mode, int depth)
@@ -162,17 +164,46 @@ public class Linker : MonoBehaviour
 			return siblings;
 		}
 
+		public void IncrementSubtree(RenderMode mode)
+		{
+			if (depth + subtreeDepth == maxDepth)
+				return;
+			InstantiateSubtree(mode, 1);
+		}
+
 		private List<List<Linker.Container>> GetNextLevel()
 		{
-			this.subtreeDepth++;
-			Debug.Log(this.subtreeDepth);
+			Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
+			Queue<Linker.Container> leafQueue = new Queue<Linker.Container>();
+			Linker.Container parent;
+			Linker.Container newNode;
 			List<List<Linker.Container>> levels = new List<List<Linker.Container>>();
 			levels.Add(new List<Linker.Container>());
-			foreach (Linker.Container child in this.children)
+
+			childrenQueue.Enqueue(this);
+
+			while (childrenQueue.Count != 0)
 			{
-				child.subtreeDepth = this.subtreeDepth;
-				levels[0].Add(child);
+				parent = childrenQueue.Dequeue();
+				if (parent.subtreeDepth == 0) // Reached the 'leaf' nodes
+				{
+					foreach (Linker.Container child in parent.children)
+					{
+						leafQueue.Enqueue(child);
+						child.subtreeDepth++;
+					}
+				}
+
+				else if (parent.subtreeDepth > 0)
+					foreach (Linker.Container child in parent.children)
+						childrenQueue.Enqueue(child);
+
+				parent.subtreeDepth++;
 			}
+
+			while (leafQueue.Count != 0)
+				levels[0].Add(leafQueue.Dequeue());
+
 			return levels;
 		}
 
@@ -317,7 +348,7 @@ public class Linker : MonoBehaviour
 			for (int i = 0; i < nrOfLevels; i++) // Create all folderPrefabs from the 2d list of nodes
 			{
 				if (nodes[i].Count != 0)
-					childDepth = nodes[i][0].depth;
+					childDepth = nodes[i][0].depth - this.depth;
 
 				nrOfNodes = nodes[i].Count;
 
@@ -515,6 +546,7 @@ public class Linker : MonoBehaviour
 			". Id = " + id +
 			". Depth = " + depth +
 			". Subtree depth = " + subtreeDepth +
+			". Max depth = " + maxDepth +
 			". Size = " + size +
 			". Weight = " + weight +
 			". Number of children = " + children.Count +
@@ -523,5 +555,39 @@ public class Linker : MonoBehaviour
 			Debug.Log(output);
 		}
 
+		private int GetMaxDepth(Linker.Container root)
+		{
+			Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
+			Linker.Container parent;
+			int maxDepth = 0;
+
+			childrenQueue.Enqueue(root);
+			while (childrenQueue.Count != 0) // Get max depth
+			{
+				parent = childrenQueue.Dequeue();
+				if (parent.depth > maxDepth)
+					maxDepth = parent.depth;
+
+				foreach (Linker.Container child in parent.children)
+					childrenQueue.Enqueue(child);
+			}
+			return maxDepth;
+		}
+
+		private void SetMaxDepth(Linker.Container root, int maxDepth)
+		{
+			Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
+			Linker.Container parent;
+
+			childrenQueue.Enqueue(root);
+			while (childrenQueue.Count != 0) // set max depth
+			{
+				parent = childrenQueue.Dequeue();
+				parent.maxDepth = maxDepth;
+
+				foreach (Linker.Container child in parent.children)
+					childrenQueue.Enqueue(child);
+			}
+		}
 	}
 }

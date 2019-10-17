@@ -29,7 +29,7 @@ public class ObjectClicker : MonoBehaviour
 				if (obj.GetComponent<Linker>().container.children.Count != 0)
 				{
 					//int currentDepth = obj.GetComponent<Linker>().container.depth;
-					obj.GetComponent<Linker>().container.ToggleSubtree(Linker.RenderMode.LEVELS);
+					obj.GetComponent<Linker>().container.IncrementSubtree(Linker.RenderMode.LEVELS);
 					//obj.GetComponent<Linker>().container.InstantiateSubtree(Linker.RenderMode.LEVELS, 1);
 				}
 			}

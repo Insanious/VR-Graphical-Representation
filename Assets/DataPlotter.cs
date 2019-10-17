@@ -52,6 +52,41 @@ public class DataPlotter : MonoBehaviour
 		root.self.GetComponent<Linker>().container = root;
 	}
 
+	private int GetMaxDepth(Linker.Container root)
+	{
+		Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
+		Linker.Container parent;
+		int maxDepth = 0;
+
+		childrenQueue.Enqueue(root);
+		while (childrenQueue.Count != 0) // Get max depth
+		{
+			parent = childrenQueue.Dequeue();
+			if (parent.depth > maxDepth)
+				maxDepth = parent.depth;
+
+			foreach (Linker.Container child in parent.children)
+				childrenQueue.Enqueue(child);
+		}
+		return maxDepth;
+	}
+
+	private void SetMaxDepth(Linker.Container root, int maxDepth)
+	{
+		Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
+		Linker.Container parent;
+
+		childrenQueue.Enqueue(root);
+		while (childrenQueue.Count != 0) // set max depth
+		{
+			parent = childrenQueue.Dequeue();
+			parent.maxDepth = maxDepth;
+
+			foreach (Linker.Container child in parent.children)
+				childrenQueue.Enqueue(child);
+		}
+	}
+
 	public void InitializeNodes()
 	{
 		Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
@@ -83,7 +118,7 @@ public class DataPlotter : MonoBehaviour
 				child.id = id++;
 				child.isInstantiated = false;
 				child.isDrawingLine = false;
-				child.subtreeDepth = 0;
+				child.subtreeDepth = -1;
 
 				if (child.id > 0 && child.id < 4)
 				{
@@ -108,5 +143,7 @@ public class DataPlotter : MonoBehaviour
 				childrenQueue.Enqueue(child);
 			}
 		}
+
+		SetMaxDepth(root, GetMaxDepth(root));
 	}
 }
