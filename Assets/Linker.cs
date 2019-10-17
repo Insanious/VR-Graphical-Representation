@@ -182,7 +182,6 @@ public class Linker : MonoBehaviour
 		{
 			List<Linker.Container> levels = GetLastLevel();
 
-			Debug.Log("Count = " + levels.Count);
 			foreach (Linker.Container leaf in levels)
 				leaf.self.SetActive(false);
 		}
