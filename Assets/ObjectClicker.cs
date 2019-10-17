@@ -29,7 +29,8 @@ public class ObjectClicker : MonoBehaviour
 				if (obj.GetComponent<Linker>().container.children.Count != 0)
 				{
 					//int currentDepth = obj.GetComponent<Linker>().container.depth;
-					obj.GetComponent<Linker>().container.InstantiateSubtree(Linker.RenderMode.LEVELS, 1);
+					obj.GetComponent<Linker>().container.ToggleSubtree(Linker.RenderMode.LEVELS);
+					//obj.GetComponent<Linker>().container.InstantiateSubtree(Linker.RenderMode.LEVELS, 1);
 				}
 			}
 		}
@@ -40,18 +41,6 @@ public class ObjectClicker : MonoBehaviour
 			if (obj != null && (obj.name == "DataBall(Clone)" || obj.name == "Cube(Clone)"))
 				obj.GetComponent<Linker>().container.CopySubtree(new Vector3(10f, 0f, 10f));
 		}
-
-		else if (Input.mouseScrollDelta.y != 0)
-		{
-			Debug.Log("delta = " + Input.mouseScrollDelta.y);
-			obj = RayCastToGameObject();
-			if (obj != null && (obj.name == "DataBall(Clone)" || obj.name == "Cube(Clone)"))
-			{
-				Debug.Log("delta = " + Input.mouseScrollDelta.y);
-			}
-		}
-
-		//if (Input.GetAxis("Mouse ScrollWheel") > 0f )
     }
 
 	GameObject RayCastToGameObject()

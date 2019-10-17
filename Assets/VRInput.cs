@@ -22,15 +22,7 @@ public class VRInput : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-		if (GetTeleportDown())
-		{
-		    Debug.Log("Teleport " + handType);
-		}
-
-		if (GetGrab())
-		{
-		    Debug.Log("Grab " + handType);
-		}
+		
 
     }
 

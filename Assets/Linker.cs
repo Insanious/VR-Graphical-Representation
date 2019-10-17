@@ -45,7 +45,7 @@ public class Linker : MonoBehaviour
 			copy.isInstantiated = false;
 			copy.isDrawingLine = false;
 			copy.id = this.id;
-			copy.subtreeDepth = this.subtreeDepth;
+			copy.subtreeDepth = 0;
 			copy.name = this.name;
 			copy.size = this.size;
 			copy.weight = this.weight;
@@ -81,7 +81,6 @@ public class Linker : MonoBehaviour
 
 					newParent.children.Add(newChild);
 					childrenQueue.Enqueue(child);
-					//foreach (Linker.Container in parent.children) ADD SIBLINGS AT THE END
 				}
 
 				foreach(Linker.Container child in newParent.children) // Add siblings
@@ -297,7 +296,6 @@ public class Linker : MonoBehaviour
 
 		public void InstantiateSubtree(RenderMode mode, int depth) // Circular rendering
 		{
-			Debug.Log("InstantiateSubtree with " + depth);
 			List<List<Linker.Container>> nodes;
 			Vector3 size;
 			Vector3 position;
@@ -319,12 +317,8 @@ public class Linker : MonoBehaviour
 			for (int i = 0; i < nrOfLevels; i++) // Create all folderPrefabs from the 2d list of nodes
 			{
 				if (nodes[i].Count != 0)
-				{
 					childDepth = nodes[i][0].depth;
 
-					if (nodes[i][0].parent != null)
-						parentPosition = nodes[i][0].parent.self.transform.position;
-				}
 				nrOfNodes = nodes[i].Count;
 
 				deltaTheta = (2f * Mathf.PI) / nrOfNodes;
@@ -334,7 +328,7 @@ public class Linker : MonoBehaviour
 				{
 
 					size = new Vector3(.25f, .25f, .25f);
-					position = new Vector3(parentPosition.x + radius * Mathf.Cos(theta), parentPosition.y + heightMultiplier, parentPosition.z + radius * Mathf.Sin(theta));
+					position = new Vector3(parentPosition.x + radius * Mathf.Cos(theta), parentPosition.y + heightMultiplier * childDepth, parentPosition.z + radius * Mathf.Sin(theta));
 
 					nodes[i][j].folderPrefab = this.folderPrefab;
 					nodes[i][j].filePrefab = this.filePrefab;
@@ -528,5 +522,6 @@ public class Linker : MonoBehaviour
 
 			Debug.Log(output);
 		}
+
 	}
 }
