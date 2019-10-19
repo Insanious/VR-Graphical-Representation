@@ -27,7 +27,6 @@ public class DataPlotter : MonoBehaviour
 
 		InitializeNodes();
 		InstantiateRoot(root, new Vector3(0, 0, 0), new Vector3(0.25f, 0.25f, 0.25f));
-		root.InstantiateSubtree(Linker.RenderMode.LEVELS, depth);
 	}
 
 	public void InstantiateRoot(Linker.Container root, Vector3 startPosition, Vector3 size)
@@ -40,8 +39,8 @@ public class DataPlotter : MonoBehaviour
 
 		root.self = Instantiate(prefab, new Vector3(startPosition.x, startPosition.y, startPosition.z), Quaternion.identity);
 		root.line = Instantiate(linePrefab);
-
 		root.isInstantiated = true;
+		root.rootPosition = new Vector3(0, 0, 0);
 		root.self.transform.localScale = size;
 		root.self.GetComponent<Renderer>().material.color = root.color;
 
@@ -95,6 +94,7 @@ public class DataPlotter : MonoBehaviour
 		float colorTint = 0.2f;
 
 		root.parent = null;
+		root.root = root;
 		root.siblings = new List<Linker.Container>();
 		root.depth = root.GetDepth();
 		root.id = id++;
@@ -116,9 +116,11 @@ public class DataPlotter : MonoBehaviour
 				child.parent = parent;
 				child.depth = child.GetDepth();
 				child.id = id++;
+				child.root = root;
 				child.isInstantiated = false;
 				child.isDrawingLine = false;
 				child.subtreeDepth = -1;
+				child.rootPosition = root.rootPosition;
 
 				if (child.id > 0 && child.id < 4)
 				{
