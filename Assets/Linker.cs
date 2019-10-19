@@ -20,12 +20,14 @@ public class Linker : MonoBehaviour
 		public List<Container> children { get; set; }
 		public List<Container> siblings { get; set; }
 		public Container parent { get; set; }
+		public Container root;
 		public bool isInstantiated { get; set; }
 		public bool isDrawingLine { get; set; }
 		public int id { get; set; }
 		public int depth { get; set; }
 		public int subtreeDepth { get; set; }
 		public int maxDepth { get; set; }
+		public Vector3 rootPosition { get; set; }
 		public string name { get; set; }
 		public float size { get; set; }
 		public float weight { get; set; }
@@ -63,10 +65,18 @@ public class Linker : MonoBehaviour
 			Linker.Container newParent;
 			Linker.Container newChild;
 
+			Vector3 position = self.transform.position;
+			Vector3 size = self.transform.localScale;
+
+			Vector3 newPosition = new Vector3(position.x + offset.x, position.y + offset.y, position.z + offset.z);
+			Vector3 newSize = new Vector3(size.x, size.y, size.z);
+
 			Linker.Container newRoot = this.CopyNode();
 			if (newRoot.subtreeDepth < -1) // Copied a node != root when full tree was displayed
 				newRoot.subtreeDepth = -1;
 			newRoot.depth = newRoot.GetDepth();
+			newRoot.rootPosition = newPosition;
+			newRoot.root = newRoot;
 
 			childrenQueue.Enqueue(this);
 			newChildrenQueue.Enqueue(newRoot);
@@ -79,6 +89,8 @@ public class Linker : MonoBehaviour
 					newChild = child.CopyNode();
 					newChild.parent = newParent;
 					newChild.depth = newChild.GetDepth();
+					newChild.rootPosition = newRoot.rootPosition;
+					newChild.root = newRoot;
 					newChildrenQueue.Enqueue(newChild);
 
 					newParent.children.Add(newChild);
@@ -92,13 +104,31 @@ public class Linker : MonoBehaviour
 			}
 			SetMaxDepth(newRoot, GetMaxDepth(newRoot)); // Calculate max depth and set all nodes max depth to it in the new tree starting from the new root
 
-			Vector3 position = self.transform.position;
-			Vector3 size = self.transform.localScale;
-
-			Vector3 newPosition = new Vector3(position.x + offset.x, position.y + offset.y, position.z + offset.z);
-			Vector3 newSize = new Vector3(size.x, size.y, size.z);
-
 			InstantiateNode(newRoot, newPosition, newSize);
+		}
+
+		private List<Linker.Container> GetInstantiatedNodes(int depth)
+		{
+			Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
+			List<Linker.Container> nodes = new List<Linker.Container>();
+			Linker.Container parent;
+
+			childrenQueue.Enqueue(this);
+			while (childrenQueue.Count != 0)
+			{
+				parent = childrenQueue.Dequeue();
+				if (parent.depth == depth)
+				{
+					if (parent.isInstantiated && parent.self.activeSelf)
+						nodes.Add(parent);
+				}
+
+				else if (parent.depth < depth)
+					foreach (Linker.Container child in parent.children)
+						childrenQueue.Enqueue(child);
+			}
+
+			return nodes;
 		}
 
 		private List<List<Linker.Container>> GetNodes(RenderMode mode, int depth)
@@ -109,7 +139,12 @@ public class Linker : MonoBehaviour
 					return GetAllSiblings(depth);
 				case RenderMode.LEVELS:
 					if (depth == 1)
-						return GetNextLevel();
+					{
+						List<List<Container.Linker>> list = new List<List<Container.Linker>>();
+						list.Add(new List<Linker.Container>())
+						list[0].Add(GetNextLevel());
+						return list;
+					}
 					return GetAllLevels(depth);
 				default:
 					Debug.Log("Wrong mode.");
@@ -166,82 +201,226 @@ public class Linker : MonoBehaviour
 
 		public void IncrementSubtree(RenderMode mode)
 		{
-			if (depth + subtreeDepth == maxDepth)
-				return;
-			InstantiateSubtree(mode, 1);
+			if (subtreeDepth + depth < maxDepth)
+				InstantiateNextLevel(mode);
+		}
+
+		public void InstantiateNextLevel(RenderMode mode)
+		{
+			List<Linker.Container> nodes;
+			List<Linker.Container> instantiatedNodes;
+			Vector3 size;
+			Vector3 position;
+			Vector3 parentPosition = self.transform.position;
+			int nrOfLevels = 0;
+			int nrOfNodes = 0;
+			int childDepth = 0;
+			float heightMultiplier = 2;
+			float radius = .1f;
+			float deltaTheta = 0f;
+			float theta = 0f;
+			float nodeSeparation = 1.25f; // Separate nodes with a gap of one whole node inbetween
+			float nodeSize = 0.25f;
+
+			nodes = GetNextLevel();
+
+			if (parent != null)
+			{
+				instantiatedNodes = root.GetInstantiatedNodes(nodes[0].depth);
+				foreach (Linker.Container node in instantiatedNodes)
+					nodes.Add(node);
+			}
+
+			if (nodes.Count != 0)
+				childDepth = nodes[0].depth - this.depth;
+
+			nrOfNodes = nodes.Count;
+
+			deltaTheta = (2f * Mathf.PI) / nrOfNodes;
+			radius = nrOfNodes / (Mathf.PI / (nodeSize / nodeSeparation));
+
+			for (int i = 0; i < nrOfNodes; i++) // Instantiate all nodes at level = i
+			{
+				size = new Vector3(.25f, .25f, .25f);
+				position = new Vector3(rootPosition.x + radius * Mathf.Cos(theta), parentPosition.y + heightMultiplier * childDepth, rootPosition.z + radius * Mathf.Sin(theta));
+
+				if (!nodes[i].isInstantiated)
+				{
+
+					nodes[i].folderPrefab = this.folderPrefab;
+					nodes[i].filePrefab = this.filePrefab;
+					nodes[i].linePrefab = this.linePrefab;
+
+					InstantiateNode(nodes[i], position, size);
+				}
+				else
+				{
+					nodes[i].self.SetActive(true);
+					nodes[i].self.transform.position = position;
+				}
+
+				theta += deltaTheta;
+			}
+
 		}
 
 		public void DecrementSubtree(RenderMode mode)
 		{
-			if (subtreeDepth == 0)
-				return;
-			DestantiateSubtree(mode, 1);
+			if (subtreeDepth != 0) // there is no subtree to decrement
+				DestantiateSubtree(mode);
 		}
 
-		public void DestantiateSubtree(RenderMode mode, int depth)
+		public void DestantiateSubtree(RenderMode mode)
 		{
+			List<Linker.Container> instantiatedNodes = new List<Linker.Container>();
+			int nrOfInstantiated = 0;
+			float deltaTheta = 0;
+			float radius = 0;
+			float theta = 0;
+			Vector3 position;
 			List<Linker.Container> levels = GetLastLevel();
 
+			int depth = levels[0].depth;
+			float nodeSize = 0.25f;
+			float nodeSeparation = 1.25f;
+			float height = levels[0].self.transform.position.y;
 			foreach (Linker.Container leaf in levels)
 				leaf.self.SetActive(false);
+
+			if (parent != null)
+				instantiatedNodes = root.GetInstantiatedNodes(depth);
+
+			nrOfInstantiated = instantiatedNodes.Count;
+			deltaTheta = (2f * Mathf.PI) / nrOfInstantiated;
+			radius = nrOfInstantiated / (Mathf.PI / (nodeSize / nodeSeparation));
+
+			for (int i = 0; i < nrOfInstantiated; i++)
+			{
+				position = new Vector3(rootPosition.x + radius * Mathf.Cos(theta), height, rootPosition.z + radius * Mathf.Sin(theta));
+				instantiatedNodes[i].self.transform.position = position;
+
+				theta += deltaTheta;
+			}
 		}
 
 		private List<Linker.Container> GetLastLevel()
 		{
 			Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
 			List<Linker.Container> levels = new List<Linker.Container>();
+			int combinedDepth = this.depth + this.subtreeDepth;
 			Linker.Container parent;
 
 			childrenQueue.Enqueue(this);
 			while (childrenQueue.Count != 0)
 			{
 				parent = childrenQueue.Dequeue();
-				if (parent.subtreeDepth == 0) // Reached the 'leaf' nodes
-					levels.Add(parent);
-				else
+				if (parent.subtreeDepth == 1 && combinedDepth == parent.subtreeDepth + parent.depth) // Reached the 'leaf' nodes
+				{
 					foreach (Linker.Container child in parent.children)
+						levels.Add(child);
+				}
+				else
+				{
+					foreach (Linker.Container child in parent.children) // Keep going down subtree
 						childrenQueue.Enqueue(child);
-
-				parent.subtreeDepth--;
+				}
 			}
+
+			DescendAndAdd(levels, -1);
 
 			return levels;
 		}
 
-		private List<List<Linker.Container>> GetNextLevel()
+		private void DescendAndAdd(List<Linker.Container> nodes, int value)
+		{
+			Dictionary<int, Linker.Container> dict = new Dictionary<int, Linker.Container>();
+			Queue<Linker.Container> parentQueue = new Queue<Linker.Container>();
+			Linker.Container parent;
+			int parentCombinedDepth = 0;
+			int childMax = -1;
+			// first node is a leaf, combinedDepth that shit and then check the parents for it
+
+			foreach (Linker.Container node in nodes) // Add the leaf nodes parents to queue
+			{
+				node.subtreeDepth += value;
+				parentQueue.Enqueue(node.parent);
+			}
+
+
+			while (parentQueue.Count != 0) // Process all parents
+			{
+				parent = parentQueue.Dequeue();
+				if (parent.children.Count == 1) // If there is only one child, update parent
+				{
+					if (!dict.ContainsKey(parent.id))
+					{
+						dict.Add(parent.id, parent);
+						parent.subtreeDepth += value;
+					}
+				}
+				if (parent.children.Count > 1)
+				{
+					parentCombinedDepth = parent.subtreeDepth + parent.depth;
+
+					foreach (Linker.Container child in parent.children) // Find max combined depth of all the children
+						if (child.depth + child.subtreeDepth > childMax)
+							childMax = child.depth + child.subtreeDepth;
+
+					if (value > 0)
+					{
+						if (childMax > parentCombinedDepth) // If max > parent, update parent
+						{
+							if (!dict.ContainsKey(parent.id))
+							{
+								dict.Add(parent.id, parent);
+								parent.subtreeDepth += value;
+							}
+						}
+					}
+
+					else if (value < 0)
+					{
+						if (childMax < parentCombinedDepth)  // If max < parent, update parent
+						{
+							if (!dict.ContainsKey(parent.id))
+							{
+								dict.Add(parent.id, parent);
+								parent.subtreeDepth += value;
+							}
+						}
+					}
+				}
+
+				if (parent.parent != null)
+					parentQueue.Enqueue(parent.parent);
+			}
+		}
+
+		private List<Linker.Container> GetNextLevel()
 		{
 			Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
 			Queue<Linker.Container> leafQueue = new Queue<Linker.Container>();
-			List<List<Linker.Container>> levels = new List<List<Linker.Container>>();
+			List<Linker.Container> nodes = new List<Linker.Container>();
+			int combinedDepth = this.depth + this.subtreeDepth;
 			Linker.Container parent;
-			Linker.Container newNode;
 
-			levels.Add(new List<Linker.Container>());
 
 			childrenQueue.Enqueue(this);
 			while (childrenQueue.Count != 0)
 			{
 				parent = childrenQueue.Dequeue();
-				if (parent.subtreeDepth == 0) // Reached the 'leaf' nodes
-				{
+				if (parent.subtreeDepth == 0 && combinedDepth == parent.depth + parent.subtreeDepth) // Reached the 'leaf' nodes
 					foreach (Linker.Container child in parent.children)
-					{
-						leafQueue.Enqueue(child);
-						child.subtreeDepth++;
-					}
-				}
+						nodes.Add(child);
 
 				else if (parent.subtreeDepth > 0)
 					foreach (Linker.Container child in parent.children)
 						childrenQueue.Enqueue(child);
-
-				parent.subtreeDepth++;
 			}
 
-			while (leafQueue.Count != 0)
-				levels[0].Add(leafQueue.Dequeue());
+			DescendAndAdd(nodes, 1);
 
-			return levels;
+			return nodes;
 		}
 
 		private List<List<Linker.Container>> GetAllLevels(int depth)
@@ -394,15 +573,20 @@ public class Linker : MonoBehaviour
 
 				for (int j = 0; j < nrOfNodes; j++) // Instantiate all nodes at level = i
 				{
+					if (!nodes[i][j].isInstantiated)
+					{
+						size = new Vector3(.25f, .25f, .25f);
+						position = new Vector3(parentPosition.x + radius * Mathf.Cos(theta), parentPosition.y + heightMultiplier * childDepth, parentPosition.z + radius * Mathf.Sin(theta));
 
-					size = new Vector3(.25f, .25f, .25f);
-					position = new Vector3(parentPosition.x + radius * Mathf.Cos(theta), parentPosition.y + heightMultiplier * childDepth, parentPosition.z + radius * Mathf.Sin(theta));
+						nodes[i][j].folderPrefab = this.folderPrefab;
+						nodes[i][j].filePrefab = this.filePrefab;
+						nodes[i][j].linePrefab = this.linePrefab;
 
-					nodes[i][j].folderPrefab = this.folderPrefab;
-					nodes[i][j].filePrefab = this.filePrefab;
-					nodes[i][j].linePrefab = this.linePrefab;
+						InstantiateNode(nodes[i][j], position, size);
+					}
+					else
+						nodes[i][j].self.SetActive(true);
 
-					InstantiateNode(nodes[i][j], position, size);
 					theta += deltaTheta;
 				}
 			}
