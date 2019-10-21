@@ -140,9 +140,8 @@ public class Linker : MonoBehaviour
 				case RenderMode.LEVELS:
 					if (depth == 1)
 					{
-						List<List<Container.Linker>> list = new List<List<Container.Linker>>();
-						list.Add(new List<Linker.Container>())
-						list[0].Add(GetNextLevel());
+						List<List<Linker.Container>> list = new List<List<Linker.Container>>();
+						list.Add(GetNextLevel());
 						return list;
 					}
 					return GetAllLevels(depth);
@@ -253,6 +252,7 @@ public class Linker : MonoBehaviour
 
 					InstantiateNode(nodes[i], position, size);
 				}
+
 				else
 				{
 					nodes[i].self.SetActive(true);
@@ -262,6 +262,8 @@ public class Linker : MonoBehaviour
 				theta += deltaTheta;
 			}
 
+			if (isDrawingLine)
+				root.EnableSubtreeLines();
 		}
 
 		public void DecrementSubtree(RenderMode mode)
@@ -285,10 +287,10 @@ public class Linker : MonoBehaviour
 			float nodeSeparation = 1.25f;
 			float height = levels[0].self.transform.position.y;
 			foreach (Linker.Container leaf in levels)
+			{
 				leaf.self.SetActive(false);
-
-			if (parent != null)
-				instantiatedNodes = root.GetInstantiatedNodes(depth);
+				leaf.DisableNodeLine();
+			}
 
 			nrOfInstantiated = instantiatedNodes.Count;
 			deltaTheta = (2f * Mathf.PI) / nrOfInstantiated;
@@ -301,6 +303,8 @@ public class Linker : MonoBehaviour
 
 				theta += deltaTheta;
 			}
+			if (isDrawingLine)
+				root.EnableSubtreeLines();
 		}
 
 		private List<Linker.Container> GetLastLevel()
@@ -641,6 +645,8 @@ public class Linker : MonoBehaviour
 		{
 			Queue<Linker.Container> childrenQueue = new Queue<Linker.Container>();
 			Linker.Container parent;
+			if (id == 0) // root
+				isDrawingLine = false;
 
 			childrenQueue.Enqueue(this);
 			while(childrenQueue.Count != 0)
@@ -649,10 +655,15 @@ public class Linker : MonoBehaviour
 
 				foreach (Linker.Container child in parent.children)
 				{
-					if (child.isInstantiated)
+					if (child.isInstantiated && child.self.activeSelf)
 					{
 						childrenQueue.Enqueue(child);
 
+						child.line.GetComponent<LineRenderer>().positionCount = 0;
+						child.isDrawingLine = false;
+					}
+					else if (child.isDrawingLine && !child.self.activeSelf)
+					{
 						child.line.GetComponent<LineRenderer>().positionCount = 0;
 						child.isDrawingLine = false;
 					}
@@ -669,34 +680,69 @@ public class Linker : MonoBehaviour
 			Vector3 childPos;
 			Color childColor;
 
+			if (id == 0) // root
+				isDrawingLine = true;
+
 			childrenQueue.Enqueue(this);
 			while(childrenQueue.Count != 0)
 			{
 				parent = childrenQueue.Dequeue();
+
 				parentPos = parent.self.transform.position;
 				parentColor = parent.color;
 
 				foreach (Linker.Container child in parent.children)
 				{
-					if (child.isInstantiated)
+					if (child.isInstantiated && child.self.activeSelf)
 					{
+						Debug.Log(child.depth);
 						childrenQueue.Enqueue(child);
-
 						childPos = child.self.transform.position;
-						childColor = child.color;
 
-						LineRenderer lineRenderer = child.self.GetComponent<Linker>().container.line.GetComponent<LineRenderer>();
+						LineRenderer lineRenderer = child.line.GetComponent<LineRenderer>();
+						if (lineRenderer.positionCount == 0)
+						{
+							lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+							lineRenderer.startColor = child.color;
+							lineRenderer.endColor = parentColor;
+						}
+						lineRenderer.positionCount = 0;
 						lineRenderer.positionCount = 2;
 						lineRenderer.SetPosition(0, new Vector3(childPos.x, childPos.y, childPos.z));
 						lineRenderer.SetPosition(1, new Vector3(parentPos.x, parentPos.y, parentPos.z));
-						lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
-						lineRenderer.startColor = childColor;
-						lineRenderer.endColor = parentColor;
 
 						child.isDrawingLine = true;
 					}
+					else if (child.isDrawingLine && !child.self.activeSelf)
+					{
+						child.line.GetComponent<LineRenderer>().positionCount = 0;
+						child.isDrawingLine = false;
+					}
 				}
 			}
+		}
+
+		private void EnableNodeLine()
+		{
+			Vector3 pos = self.transform.position;
+			Vector3 parentPos = parent.self.transform.position;
+
+			LineRenderer lineRenderer = line.GetComponent<LineRenderer>();
+			lineRenderer.positionCount = 0; // reset line
+			lineRenderer.positionCount = 2;
+			lineRenderer.SetPosition(0, new Vector3(pos.x, pos.y, pos.z));
+			lineRenderer.SetPosition(1, new Vector3(parentPos.x, parentPos.y, parentPos.z));
+			lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+			lineRenderer.startColor = color;
+			lineRenderer.endColor = parent.color;
+
+			isDrawingLine = true;
+		}
+
+		private void DisableNodeLine()
+		{
+			line.GetComponent<LineRenderer>().positionCount = 0;
+			isDrawingLine = false;
 		}
 
 		private void Move(Vector3 increment)
