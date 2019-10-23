@@ -20,7 +20,7 @@ public class Linker : MonoBehaviour
 		public List<Container> children { get; set; }
 		public List<Container> siblings { get; set; }
 		public Container parent { get; set; }
-		public Container root;
+		public Container root { get; set; }
 		public bool isInstantiated { get; set; }
 		public bool isDrawingLine { get; set; }
 		public int id { get; set; }
@@ -820,6 +820,33 @@ public class Linker : MonoBehaviour
 			". Number of siblings = " + siblings.Count;
 
 			Debug.Log(output);
+		}
+
+		public string ToString()
+		{
+			string output = System.String.Empty;
+			if (size == 0) // a folder has no size, only files has
+				output += "Type = folder\n";
+			else
+				output += "Type = file\n";
+
+			output += "Name = " + name + "\n";
+
+			if (parent == null) // root
+				output += "Parent = null\n";
+			else
+				output += "Parent = " + parent.name + "\n";
+			output +=
+			"Id = " + id + "\n" +
+			"Depth = " + depth + "\n" + 
+			"Subtree depth = " + subtreeDepth + "\n" + 
+			"Max depth = " + maxDepth + "\n" + 
+			"Size = " + size + "\n" + 
+			"Weight = " + weight + "\n" + 
+			"Number of children = " + children.Count + "\n" + 
+			"Number of siblings = " + siblings.Count;
+
+			return output;
 		}
 
 		private int GetMaxDepth(Linker.Container root)

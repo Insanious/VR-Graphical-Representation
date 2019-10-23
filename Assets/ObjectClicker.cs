@@ -19,7 +19,7 @@ public class ObjectClicker : MonoBehaviour
 			obj = RayCastToGameObject();
 			if (obj != null && (obj.name == "DataBall(Clone)" || obj.name == "Cube(Clone)"))
 			{
-				obj.GetComponent<Linker>().container.DecrementSubtree(Linker.RenderMode.LEVELS);
+				//obj.GetComponent<Linker>().container.DecrementSubtree(Linker.RenderMode.LEVELS);
 				//obj.GetComponent<Linker>().container.Print();
 				//obj.GetComponent<Linker>().container.ToggleSubtreeLines();
 			}
@@ -48,6 +48,7 @@ public class ObjectClicker : MonoBehaviour
 			}
 			else
 			{
+				/*
 				Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 				Debug.DrawRay(ray.origin, ray.direction * 10, Color.red, 1);
 				Vector3 origin = new Vector3();
@@ -55,14 +56,14 @@ public class ObjectClicker : MonoBehaviour
 				/*if (origin.x < 0)
 					origin.x *= -1;
 				if (origin.z < 0)
-					origin.z *= -1;*/
+					origin.z *= -1;
 
 				Vector3 objPos = selectedObj.transform.position;
 				Vector3	start = new Vector3();
 				Vector3 end = new Vector3();
 				Vector3 final = new Vector3();
 				Vector3 offset = new Vector3();
-				float deltaX = Input.GetAxis("Mouse X");
+
 				float deltaY = Input.GetAxis("Mouse Y");
 
 				start = new Vector3(ray.origin.x - objPos.x, 0, ray.origin.z - objPos.z);
@@ -82,7 +83,7 @@ public class ObjectClicker : MonoBehaviour
 				//Debug.Log(start.ToString() + ", " + end.ToString() + ", " + offset.ToString() + ", " + final.ToString());
 
 
-				/*
+
 				Vector3 camPos = Camera.main.transform.position;
 
 				oldVec = new Vector3(camPos.x - objPos.x, 0, camPos.z - objPos.z);
@@ -97,9 +98,9 @@ public class ObjectClicker : MonoBehaviour
 				Vector3	offset = new Vector3(newVec.x - oldVec.x, 0, newVec.z - oldVec.z);
 				*/
 
-
-				if (deltaX != 0 || deltaY != 0)
-					selectedObj.GetComponent<Linker>().container.MoveSubtree(new Vector3(deltaX, 0, 0));
+				float deltaX = Input.GetAxis("Mouse X");
+				//if (deltaX != 0)
+					//selectedObj.GetComponent<Linker>().container.MoveSubtree(new Vector3(deltaX, 0, 0));
 			}
 		}
 		else
@@ -127,9 +128,9 @@ public class ObjectClicker : MonoBehaviour
 		{
 			obj = RayCastToGameObject();
 			if (obj != null && (obj.name == "DataBall(Clone)" || obj.name == "Cube(Clone)"))
-				obj.GetComponent<Linker>().container.ToggleSubtreeLines();
+				//obj.GetComponent<Linker>().container.ToggleSubtreeLines();
 				//obj.GetComponent<Linker>().container.Print();
-				//obj.GetComponent<Linker>().container.CopySubtree(new Vector3(10f, 0f, 10f));
+				obj.GetComponent<Linker>().container.CopySubtree(new Vector3(10f, 0f, 10f));
 		}
     }
 
