@@ -9,6 +9,9 @@ public class JSONParser
 {
 	public static Linker.Container Read(string file)
 	{
-		return JsonConvert.DeserializeObject<Linker.Container>(File.ReadAllText("Assets/Resources/" + file));
+		TextAsset textFile = new TextAsset();
+		textFile = Resources.Load<TextAsset>(file);
+		return JsonConvert.DeserializeObject<Linker.Container>(textFile.text);
+		//return JsonConvert.DeserializeObject<Linker.Container>(File.ReadAllText("Assets/Resources/" + file));
 	}
 }

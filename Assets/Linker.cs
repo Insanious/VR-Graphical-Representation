@@ -29,9 +29,31 @@ public class Linker : MonoBehaviour
 		public int maxDepth { get; set; }
 		public Vector3 rootPosition { get; set; }
 		public string name { get; set; }
-		public float size { get; set; }
+		public int size { get; set; }
 		public float weight { get; set; }
 		public Color color { get; set; }
+
+		public Color CalculateColor(Color baseColor, int maxSize)
+		{
+			Color newColor = new Color();
+			float tint = 0;
+			float nodeSize = 0;
+
+			if (this.size == 0) // folder
+				nodeSize = this.GetSize();
+				//tint = (float)this.GetSize() / (float)maxSize;
+			else
+				nodeSize = this.size;
+				//tint = (float)this.size / (float)maxSize;
+
+			nodeSize = Mathf.Log(nodeSize);
+			tint = nodeSize / (float)maxSize;
+
+			Debug.Log("size: " + this.size + ", maxSize: " + maxSize + ", tint: " + tint);
+
+			newColor = baseColor * tint;
+			return newColor;
+		}
 
 		private Linker.Container CopyNode()
 		{
@@ -72,8 +94,8 @@ public class Linker : MonoBehaviour
 			Vector3 newSize = new Vector3(size.x, size.y, size.z);
 
 			Linker.Container newRoot = this.CopyNode();
-			if (newRoot.subtreeDepth < -1) // Copied a node != root when full tree was displayed
-				newRoot.subtreeDepth = -1;
+
+			newRoot.subtreeDepth = 0;
 			newRoot.depth = newRoot.GetDepth();
 			newRoot.rootPosition = newPosition;
 			newRoot.root = newRoot;
@@ -223,7 +245,7 @@ public class Linker : MonoBehaviour
 
 			nodes = GetNextLevel();
 
-			if (parent != null)
+			if (parent != null && nodes.Count != 0)
 			{
 				instantiatedNodes = root.GetInstantiatedNodes(nodes[0].depth);
 				foreach (Linker.Container node in instantiatedNodes)
@@ -408,11 +430,13 @@ public class Linker : MonoBehaviour
 			int combinedDepth = this.depth + this.subtreeDepth;
 			Linker.Container parent;
 
-
+			if (this.parent == null)
+				Debug.Log("its the root");
 			childrenQueue.Enqueue(this);
 			while (childrenQueue.Count != 0)
 			{
 				parent = childrenQueue.Dequeue();
+				Debug.Log(parent.name + ", stD: " + parent.subtreeDepth + ", cmb: " + combinedDepth + ", p.cmb" + (parent.depth + parent.subtreeDepth));
 				if (parent.subtreeDepth == 0 && combinedDepth == parent.depth + parent.subtreeDepth) // Reached the 'leaf' nodes
 					foreach (Linker.Container child in parent.children)
 						nodes.Add(child);
@@ -769,7 +793,7 @@ public class Linker : MonoBehaviour
 			return RecursiveDepth(node.parent, ++depth);
 		}
 
-		private float RecursiveSize(Linker.Container node, float size)
+		private int RecursiveSize(Linker.Container node, int size)
 		{
 			foreach (Linker.Container child in node.children)
 			{
@@ -787,7 +811,7 @@ public class Linker : MonoBehaviour
 			return RecursiveDepth(this, 0);
 		}
 
-		public float GetSize()
+		public int GetSize()
 		{
 			if (size > 0) // File
 				return size;
@@ -838,12 +862,12 @@ public class Linker : MonoBehaviour
 				output += "Parent = " + parent.name + "\n";
 			output +=
 			"Id = " + id + "\n" +
-			"Depth = " + depth + "\n" + 
-			"Subtree depth = " + subtreeDepth + "\n" + 
-			"Max depth = " + maxDepth + "\n" + 
-			"Size = " + size + "\n" + 
-			"Weight = " + weight + "\n" + 
-			"Number of children = " + children.Count + "\n" + 
+			"Depth = " + depth + "\n" +
+			"Subtree depth = " + subtreeDepth + "\n" +
+			"Max depth = " + maxDepth + "\n" +
+			"Size = " + size + "\n" +
+			"Weight = " + weight + "\n" +
+			"Number of children = " + children.Count + "\n" +
 			"Number of siblings = " + siblings.Count;
 
 			return output;
@@ -882,6 +906,33 @@ public class Linker : MonoBehaviour
 				foreach (Linker.Container child in parent.children)
 					childrenQueue.Enqueue(child);
 			}
+		}
+
+		public int GetMaxFileSize()
+		{
+			Queue<Linker.Container> parentQueue = new Queue<Linker.Container>();
+			List<Linker.Container> files = new List<Linker.Container>();
+			Linker.Container parent = null;
+			int maxFileSize = 0;
+
+			parentQueue.Enqueue(this);
+			while (parentQueue.Count != 0)
+			{
+				parent = parentQueue.Dequeue();
+				foreach (Linker.Container child in parent.children)
+				{
+					if (child.size != 0)
+						files.Add(child);
+					else
+						parentQueue.Enqueue(child);
+				}
+			}
+
+			foreach (Linker.Container file in files)
+				if (file.size > maxFileSize)
+					maxFileSize = file.size;
+
+			return maxFileSize;
 		}
 	}
 }

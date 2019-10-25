@@ -24,8 +24,6 @@ public class VRInput : MonoBehaviour
 
 	void Start()
 	{
-		output.text = "Selected node: null";
-
 		if (false) // right hand
 		{
 			movePlayer.AddOnStateDownListener(MovePlayer, handType);
@@ -120,18 +118,9 @@ public class VRInput : MonoBehaviour
 
 	void Update()
 	{
-		if (Input.GetMouseButtonDown(0))
-		{
-			GameObject obj = RayCastToGameObject(new Vector3(0, 0, 0), new Vector3(0, 0, 0));
-			if (obj != null && (obj.name == "DataBall(Clone)" || obj.name == "Cube(Clone)"))
-			{
-				selectedObj = obj;
-				output.text = selectedObj.GetComponent<Linker>().container.ToString();
-			}
-			else
-			{
-				selectedObj = null;
-			}
-		}
+		GameObject obj = RayCastToGameObject(new Vector3(0, 0, 0), new Vector3(0, 0, 0));
+		if (obj != null && (obj.name == "DataBall(Clone)" || obj.name == "Cube(Clone)"))
+			output.text = obj.GetComponent<Linker>().container.ToString();
+
 	}
 }

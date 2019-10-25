@@ -1,11 +1,14 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.UI;
 using UnityEngine;
 
 using System;
 
 public class DataPlotter : MonoBehaviour
 {
+	public Text output;
+
 	public enum RenderType { PLANAR, CONE };
 	public enum RenderMode { SIBLINGS, LEVELS };
 
@@ -24,6 +27,10 @@ public class DataPlotter : MonoBehaviour
 		nodes = new List<List<Linker.Container>>();
 
 		root = JSONParser.Read(file);
+		if (root != null)
+			output.text = root.name;
+		else
+			output.text = "penis";
 
 		InitializeNodes();
 		InstantiateRoot(root, new Vector3(0, 0, 0), new Vector3(0.25f, 0.25f, 0.25f));
@@ -92,7 +99,16 @@ public class DataPlotter : MonoBehaviour
 		Linker.Container parent;
 		int id = 0;
 		float colorTint = 0.2f;
+		int maxFileSize = (int)Mathf.Log(root.GetMaxFileSize());
+		int maxFolderSize = (int)Mathf.Log(root.GetSize());
 
+		Debug.Log(maxFileSize + ", " + maxFolderSize);
+
+		Color fileColor = new Color();
+		fileColor = Color.red;
+
+		root.color = new Color();
+		root.color = Color.white;
 		root.parent = null;
 		root.root = root;
 		root.siblings = new List<Linker.Container>();
@@ -122,6 +138,12 @@ public class DataPlotter : MonoBehaviour
 				child.subtreeDepth = -1;
 				child.rootPosition = root.rootPosition;
 
+				if (child.size == 0) // folder
+					child.color = child.CalculateColor(root.color, maxFolderSize);
+				else
+					child.color = child.CalculateColor(fileColor, maxFileSize);
+
+				/*
 				if (child.id > 0 && child.id < 4)
 				{
 					child.color = new Color();
@@ -141,6 +163,7 @@ public class DataPlotter : MonoBehaviour
 
 				else
 					child.color = new Color(parent.color.r + colorTint, parent.color.g + colorTint, parent.color.b + colorTint);
+				*/
 
 				childrenQueue.Enqueue(child);
 			}
